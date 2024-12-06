@@ -34,6 +34,7 @@ git config --global user.name "$gh_acct_name"
 git config --global user.email "$gh_email"
 git config --global init.defaultBranch main
 git config --global submodule.recurse true
+git config --global core.editor "code --wait"
 
 echo "Downgrading the GitHub security scope to default."
 gh auth refresh --hostname github.com --reset-scopes
