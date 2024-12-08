@@ -176,7 +176,7 @@ function Test-DockerDaemon {
 
 <#
 .SYNOPSIS
-Creates a WSL instance from a dev container specification.
+Creates a WSL instance from a dev container specification (devcontainer.json file).
 
 .DESCRIPTION
 Automates the creation of a Windows Subsystem for Linux (WSL) instance using a development container specification.
