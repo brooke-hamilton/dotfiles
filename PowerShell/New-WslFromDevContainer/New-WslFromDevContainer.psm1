@@ -253,3 +253,5 @@ function New-WslFromDevContainer {
         New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $NewUserName
     }
 }
+
+Export-ModuleMember -Function New-WslFromDevContainer
