@@ -1,54 +1,3 @@
-<#
-.SYNOPSIS
-Creates a WSL instance from a dev container specification.
-
-.DESCRIPTION
-Automates the creation of a Windows Subsystem for Linux (WSL) instance using a development container specification.
-It builds the container image from the dev container specification, runs the container, and then exports the container to a WSL instance.
-WSL, Docker Desktop, and the devcontainer CLI must be installed before running this script.
-
-.PARAMETER WorkspaceFolder
-The path to the workspace folder containing the devcontainer.json file. Defaults to the current directory.
-
-.PARAMETER DevContainerJsonPath
-The path to the devcontainer.json file. If not provided, the script will search for the file in the workspace folder.
-
-.PARAMETER WslInstanceName
-The name of the WSL instance. If not provided, it will use the container name.
-
-.PARAMETER NewUserName
-The new user name for the WSL instance. Defaults to the current user name.
-
-.PARAMETER SkipUserNameChange
-If specified, the script will not change the user name in the WSL instance and will use the default user name from
-the dev container, which is typically 'vscode'.
-
-.PARAMETER WslInstancesFolder
-The path to the folder where the WSL instances are stored. Defaults to the user's profile folder.
-#>  
-
-[CmdletBinding()]
-param (
-    [Parameter(Mandatory = $false)]
-    [string]$WorkspaceFolder = ".",
-
-    [Parameter(Mandatory = $false)]
-    [string]$DevContainerJsonPath = $null,
-
-    [Parameter(Mandatory = $false)]
-    [string]$WslInstanceName = $null,
-
-    [Parameter(Mandatory = $false)]
-    [ValidateNotNullOrWhiteSpace()]
-    [string]$NewUserName = $Env:USERNAME,
-    
-    [switch]$SkipUserNameChange = $false,
-
-    [Parameter(Mandatory = $false)]
-    [ValidateNotNullOrWhiteSpace()]
-    [string]$WslInstancesFolder = (Join-Path -Path $Env:USERPROFILE -ChildPath "wsl")
-)
-
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = "Stop"
 
@@ -126,7 +75,7 @@ function Get-WslUserName {
 
     # Devcontainers create a user name with user id of 1000. The default user name is 'vscode', but it can be changed
     # in the dev container configuration, so it needs to be retrieved from the WSL instance.
-    return wsl --distribution $wslInstanceName -- id -nu 1000
+    return wsl.exe --distribution $wslInstanceName -- id -nu 1000
 }
 
 function Set-UserAccount {
@@ -135,14 +84,14 @@ function Set-UserAccount {
         [string]$OldUserName,
         [string]$NewUserName
     )
-    wsl --distribution $wslInstanceName -- usermod --login $NewUserName $OldUserName
-    wsl --distribution $wslInstanceName -- usermod --home /home/$NewUserName -m $NewUserName
-    wsl --distribution $wslInstanceName -- groupmod --new-name $NewUserName $OldUserName
+    wsl.exe --distribution $wslInstanceName -- usermod --login $NewUserName $OldUserName
+    wsl.exe --distribution $wslInstanceName -- usermod --home /home/$NewUserName -m $NewUserName
+    wsl.exe --distribution $wslInstanceName -- groupmod --new-name $NewUserName $OldUserName
     
     # Dev containers use sudoers.d files to grant sudo permissions to the user without requiring a password
     # This makes the behavior of the WSL instance consistent with the dev container.
-    wsl --distribution $wslInstanceName -- mv /etc/sudoers.d/$OldUserName /etc/sudoers.d/$NewUserName
-    wsl --distribution $wslInstanceName -- sed -i "s/$OldUserName/$NewUserName/g" /etc/sudoers.d/$NewUserName
+    wsl.exe --distribution $wslInstanceName -- mv /etc/sudoers.d/$OldUserName /etc/sudoers.d/$NewUserName
+    wsl.exe --distribution $wslInstanceName -- sed -i "s/$OldUserName/$NewUserName/g" /etc/sudoers.d/$NewUserName
 }
 
 function New-WslConfigFile {
@@ -154,8 +103,8 @@ function New-WslConfigFile {
     Write-Verbose -Message "Writing /etc/wsl.conf in $wslInstanceName..."
     $configFileText = "[boot]`nsystemd=false`n`n[user]`ndefault=$UserName`n"
     $wslCommand = "echo '$configFileText' > /etc/wsl.conf"
-    wsl -d $wslInstanceName -- bash -c "$wslCommand" | Write-Verbose
-    wsl --terminate $wslInstanceName | Write-Verbose
+    wsl.exe -d $wslInstanceName -- bash -c "$wslCommand" | Write-Verbose
+    wsl.exe --terminate $wslInstanceName | Write-Verbose
 }
 
 function Get-WslInstanceName {
@@ -187,7 +136,7 @@ function New-WslInstanceFromContainer {
         [string]$wslInstancePath
     )
 
-    $existingInstances = wsl --list | ForEach-Object { 
+    $existingInstances = wsl.exe --list | ForEach-Object { 
         $existingInstanceName = $_.Trim()
         if ($existingInstanceName -ieq $wslInstanceName) {
             throw "A WSL instance with the name $wslInstanceName already exists."
@@ -199,7 +148,7 @@ function New-WslInstanceFromContainer {
     }
 
     Write-Verbose -Message "Importing WSL instance $wslInstanceName from container $containerId to $wslInstancePath ..."
-    docker export "$containerId" | wsl --import $wslInstanceName $wslInstancePath - | Write-Verbose
+    docker export "$containerId" | wsl.exe --import $wslInstanceName $wslInstancePath - | Write-Verbose
     Write-Verbose -Message "Removing container instance $containerId..."
     docker rm $containerId --force --volumes | Write-Verbose
 }
@@ -225,30 +174,82 @@ function Test-DockerDaemon {
     Write-Verbose -Message "Docker daemon is accessible."
 }
 
-Test-Command -commandName "devcontainer"
-Test-Command -commandName "docker"
-Test-Command -commandName "wsl"
-Test-DockerDaemon
+<#
+.SYNOPSIS
+Creates a WSL instance from a dev container specification.
 
-$DevContainerJsonPath = Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath
-$containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
-$containerLabel = $containerName.ToLower()
-$containerId = Invoke-ContainerBuild `
-    -containerName $containerName `
-    -containerLabel $containerLabel `
-    -workspaceFolder $WorkspaceFolder `
-    -devContainerJsonPath $DevContainerJsonPath
+.DESCRIPTION
+Automates the creation of a Windows Subsystem for Linux (WSL) instance using a development container specification.
+It builds the container image from the dev container specification, runs the container, and then exports the container to a WSL instance.
+WSL, Docker Desktop, and the devcontainer CLI must be installed before running this script.
 
-$WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName
-$wslInstancePath = Get-WslInstanceFilePath -wslInstanceName $WslInstanceName -wslInstancesFolder $WslInstancesFolder
-New-WslInstanceFromContainer -containerId $containerId -wslInstanceName $WslInstanceName -wslInstancePath $wslInstancePath
+.PARAMETER WorkspaceFolder
+The path to the workspace folder containing the devcontainer.json file. Defaults to the current directory.
 
-if ($SkipUserNameChange) {
-    $userName = Get-WslUserName -wslInstanceName $WslInstanceName
-    New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $userName
-}
-else {
-    $oldUserName = Get-WslUserName -wslInstanceName $WslInstanceName
-    Set-UserAccount -wslInstanceName $WslInstanceName -OldUserName $oldUserName -NewUserName $NewUserName
-    New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $NewUserName
+.PARAMETER DevContainerJsonPath
+The path to the devcontainer.json file. If not provided, the script will search for the file in the workspace folder.
+
+.PARAMETER WslInstanceName
+The name of the WSL instance. If not provided, it will use the container name.
+
+.PARAMETER NewUserName
+The new user name for the WSL instance. Defaults to the current user name.
+
+.PARAMETER SkipUserNameChange
+If specified, the script will not change the user name in the WSL instance and will use the default user name from
+the dev container, which is typically 'vscode'.
+
+.PARAMETER WslInstancesFolder
+The path to the folder where the WSL instances are stored. Defaults to the user's profile folder.
+#>  
+function New-WslFromDevContainer {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]
+        [string]$WorkspaceFolder = ".",
+
+        [Parameter(Mandatory = $false)]
+        [string]$DevContainerJsonPath = $null,
+
+        [Parameter(Mandatory = $false)]
+        [string]$WslInstanceName = $null,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrWhiteSpace()]
+        [string]$NewUserName = $Env:USERNAME,
+    
+        [switch]$SkipUserNameChange = $false,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrWhiteSpace()]
+        [string]$WslInstancesFolder = (Join-Path -Path $Env:USERPROFILE -ChildPath "wsl")
+    )
+
+    Test-Command -commandName "devcontainer"
+    Test-Command -commandName "docker"
+    Test-Command -commandName "wsl"
+    Test-DockerDaemon
+
+    $DevContainerJsonPath = Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath
+    $containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
+    $containerLabel = $containerName.ToLower()
+    $containerId = Invoke-ContainerBuild `
+        -containerName $containerName `
+        -containerLabel $containerLabel `
+        -workspaceFolder $WorkspaceFolder `
+        -devContainerJsonPath $DevContainerJsonPath
+
+    $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName
+    $wslInstancePath = Get-WslInstanceFilePath -wslInstanceName $WslInstanceName -wslInstancesFolder $WslInstancesFolder
+    New-WslInstanceFromContainer -containerId $containerId -wslInstanceName $WslInstanceName -wslInstancePath $wslInstancePath
+
+    if ($SkipUserNameChange) {
+        $userName = Get-WslUserName -wslInstanceName $WslInstanceName
+        New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $userName
+    }
+    else {
+        $oldUserName = Get-WslUserName -wslInstanceName $WslInstanceName
+        Set-UserAccount -wslInstanceName $WslInstanceName -OldUserName $oldUserName -NewUserName $NewUserName
+        New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $NewUserName
+    }
 }
