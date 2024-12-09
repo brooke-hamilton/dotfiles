@@ -213,6 +213,52 @@ function Test-DockerDaemon {
     Write-Verbose -Message "Docker daemon is accessible."
 }
 
+function Install-Extensions {
+    param (
+        [string]$wslInstanceName,
+        [string[]]$extensions
+    )
+
+    if($extensions) {
+        Write-Verbose -Message "Installing extensions in WSL instance $WslInstanceName..."
+        $extensions | ForEach-Object {
+            wsl.exe --distribution $WslInstanceName -- code --install-extension $_ | Write-Verbose
+        }
+    } else {
+        Write-Verbose -Message "No extensions to install."
+    }
+}
+
+function Set-WslEnv {
+    param (
+        [string[]]$containerEnv,
+        [string]$wslInstanceName
+    )
+
+    Write-Verbose -Message "Setting environment variables in WSL instance $wslInstanceName..."
+
+    foreach ($envVar in $containerEnv) {
+        if ($envVar -notmatch "=") {
+            throw "Environment variable '$envVar' is not valid. It must contain an '=' sign."
+        }
+
+        # Docker overwrites the PATH variable with the container's PATH, so change the PATH variable to prepend the
+        # existing path. An example of the container path is below:
+        #            PATH=/usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        # Change to: PATH="$PATH:/usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        if ($envVar.StartsWith("PATH=")) {
+            $envVar = $envVar -replace "^PATH=", 'PATH=\$PATH:'
+        }
+        
+        # Enclose the value in double quotes.
+        $envVar = $envVar -replace '=(.*)', '="$1"'
+
+        # Write to /etc/profile because WSL does not read /etc/environment
+        $wslCommand = "echo '$envVar' | sudo tee --append /etc/profile"
+        wsl.exe -d $wslInstanceName -- bash -c "$wslCommand" | Write-Verbose
+    }
+}
+
 <#
 .SYNOPSIS
 Creates a WSL instance from a dev container specification (devcontainer.json file).
@@ -278,28 +324,26 @@ function New-WslFromDevContainer {
         -workspaceFolder $WorkspaceFolder `
         -devContainerJsonPath $DevContainerJsonPath
 
+    $containerEnv = Get-ContainerEnv -containerId $containerId
     $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName
     $wslInstancePath = Get-WslInstanceFilePath -wslInstanceName $WslInstanceName -wslInstancesFolder $WslInstancesFolder
     New-WslInstanceFromContainer -containerId $containerId -wslInstanceName $WslInstanceName -wslInstancePath $wslInstancePath
 
     if ($SkipUserNameChange) {
         $userName = Get-WslUserName -wslInstanceName $WslInstanceName
-        New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $userName
     }
     else {
         $oldUserName = Get-WslUserName -wslInstanceName $WslInstanceName
         Set-UserAccount -wslInstanceName $WslInstanceName -OldUserName $oldUserName -NewUserName $NewUserName
-        New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $NewUserName
+        $userName = $NewUserName
     }
 
+    New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $userName
+
+    Set-WslEnv -containerEnv $containerEnv -wslInstanceName $WslInstanceName
+
     $extensions = Get-DevContainerExtensions -devContainerJsonPath $DevContainerJsonPath
-    if($extensions) {
-        Write-Verbose -Message "Installing extensions in WSL instance $WslInstanceName..."
-        $extensions | ForEach-Object {
-            $extension = $_
-            wsl.exe --distribution $WslInstanceName -- code --install-extension $extension | Write-Verbose
-        }
-    }
+    Install-Extensions -wslInstanceName $WslInstanceName -extensions $extensions
 }
 
 Export-ModuleMember -Function New-WslFromDevContainer
@@ -307,3 +351,4 @@ Export-ModuleMember -Function Get-DevContainerName
 Export-ModuleMember -Function Get-DevContainerExtensions
 Export-ModuleMember -Function Get-ContainerEnv
 Export-ModuleMember -Function Invoke-ContainerBuild
+Export-ModuleMember -Function Set-WslEnv

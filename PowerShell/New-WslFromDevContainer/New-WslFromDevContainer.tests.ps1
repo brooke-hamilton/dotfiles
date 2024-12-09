@@ -33,14 +33,7 @@ BeforeAll {
         "vscode": {
             "extensions": [
                 "redhat.vscode-yaml",
-                "golang.go",
-                "ms-python.python",
-                "ms-python.vscode-pylance",
-                "ms-azuretools.vscode-bicep",
-                "ms-kubernetes-tools.vscode-kubernetes-tools",
-                "ms-azuretools.vscode-dapr",
-                "ms-vscode.makefile-tools",
-                "timonwong.shellcheck"
+                "davidanson.vscode-markdownlint"
             ]
         }
     }
@@ -198,7 +191,7 @@ Describe 'New-WslFromDevContainer' {
         $actualExtensions = Get-DevContainerExtensions -DevContainerJsonPath $devContainerJsonPath
 
         # Assert
-        $actualExtensions | Should -Contain "golang.go"
+        $actualExtensions | Should -Contain "davidanson.vscode-markdownlint"
     }
 
     It 'Can get extensions that do not exist' -Tag 'GetExtensions' {
