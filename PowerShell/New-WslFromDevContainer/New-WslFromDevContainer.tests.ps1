@@ -2,17 +2,45 @@
 Set-StrictMode -Version 3.0
 
 BeforeDiscovery {
+    if(Get-Module -Name "New-WslFromDevContainer") {
+        Remove-Module "New-WslFromDevContainer"
+    }
     Import-Module "$PSScriptRoot\New-WslFromDevContainer.psm1"
 }
 
 BeforeAll {
 
     function Get-DevContainerJsonContent {
-        #return $devContainerJson
+        
         return @'
 {
     "name": "test-container",
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu"
+}
+'@
+    }
+
+    function Get-DevContainerJsonWithExtensions {
+        
+        return @'
+{
+    "name": "test-container",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "redhat.vscode-yaml",
+                "golang.go",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-azuretools.vscode-bicep",
+                "ms-kubernetes-tools.vscode-kubernetes-tools",
+                "ms-azuretools.vscode-dapr",
+                "ms-vscode.makefile-tools",
+                "timonwong.shellcheck"
+            ]
+        }
+    }
 }
 '@
     }
@@ -147,6 +175,40 @@ Describe 'New-WslFromDevContainer' {
         { & New-WslFromDevContainer -WorkspaceFolder $testDataPath -DevContainerJsonPath 'invalid-path' -NewUserName $null } | Should -Throw $expectedMessage
     }
 
+    It 'Can get dev container name' -Tag 'GetDevContainerName' {
+        # Arrange
+        $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
+        $expectedName = (Get-Content -Path $devContainerJsonPath -Raw | ConvertFrom-Json).name
+
+        # Act
+        $actualName = Get-DevContainerName -DevContainerJsonPath $devContainerJsonPath
+
+        # Assert
+        $actualName | Should -Be $expectedName
+    }
+
+    It 'Can get extensions' -Tag 'GetExtensions' {
+        # Arrange
+        $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonWithExtensions)
+
+        # Act
+        $actualExtensions = Get-DevContainerExtensions -DevContainerJsonPath $devContainerJsonPath
+
+        # Assert
+        $actualExtensions | Should -Contain "golang.go"
+    }
+
+    It 'Can get extensions that do not exist' -Tag 'GetExtensions' {
+        # Arrange
+        $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
+
+        # Act
+        $actualExtensions = Get-DevContainerExtensions -DevContainerJsonPath $devContainerJsonPath
+
+        # Assert
+        $actualExtensions | Should -Be $null
+    }
+
     It 'Creates WSL instance from workspace folder with one devcontainer.json' {
         # Arrange
         New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
@@ -180,6 +242,19 @@ Describe 'New-WslFromDevContainer' {
     It 'Creates WSL instance with default name' -Tag 'DefaultCase' {
         # Arrange
         $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
+        $wslInstanceName = (Get-Content -Path $devContainerJsonPath -Raw | ConvertFrom-Json).name
+        
+        # Act
+        { New-WslFromDevContainer -WorkspaceFolder $testDataPath } | Should -Not -Throw
+
+        # Assert
+        Assert-WslInstance -wslInstanceName $wslInstanceName
+        Remove-WslInstance -wslInstanceName $wslInstanceName
+    }
+
+    It 'Creates WSL instance with default name' -Tag 'DefaultCaseWithExtensions' {
+        # Arrange
+        $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonWithExtensions)
         $wslInstanceName = (Get-Content -Path $devContainerJsonPath -Raw | ConvertFrom-Json).name
         
         # Act

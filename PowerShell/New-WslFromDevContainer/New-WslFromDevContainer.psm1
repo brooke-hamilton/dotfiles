@@ -25,12 +25,21 @@ function Find-DevContainerJsonFile {
     }
 }
 
+function Get-DevContainerJson {
+    param (
+        [string]$devContainerJsonPath
+    )
+
+    $jsonContent = Get-Content -Path $devContainerJsonPath -Raw | ConvertFrom-Json
+    return $jsonContent
+}
+
 function Get-DevContainerName {
     param (
         [string]$devContainerJsonPath
     )
     # Read the devcontainer.json file
-    $jsonContent = Get-Content -Path $devContainerJsonPath -Raw | ConvertFrom-Json
+    $jsonContent = Get-DevContainerJson -devContainerJsonPath $devContainerJsonPath
 
     # Get the container name from the json content
     $containerName = $jsonContent.name
@@ -40,6 +49,27 @@ function Get-DevContainerName {
     }
 
     return $containerName.Replace(" ", "")
+}
+
+function Get-DevContainerExtensions {
+    param (
+        [string]$devContainerJsonPath
+    )
+
+    $jsonContent = Get-DevContainerJson -devContainerJsonPath $devContainerJsonPath
+
+    $extensions = $null
+    if($jsonContent.PSObject.properties["customizations"]) {
+        $customizations = $jsonContent.customizations
+        if($customizations.PSObject.properties["vscode"]) {
+            $vscode = $customizations.vscode
+            if($vscode.PSObject.properties["extensions"]) {
+                $extensions = $vscode.extensions
+            }
+        }
+    }
+
+    return $extensions
 }
 
 function Invoke-ContainerBuild {
@@ -252,6 +282,17 @@ function New-WslFromDevContainer {
         Set-UserAccount -wslInstanceName $WslInstanceName -OldUserName $oldUserName -NewUserName $NewUserName
         New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $NewUserName
     }
+
+    $extensions = Get-DevContainerExtensions -devContainerJsonPath $DevContainerJsonPath
+    if($extensions) {
+        Write-Verbose -Message "Installing extensions in WSL instance $WslInstanceName..."
+        $extensions | ForEach-Object {
+            $extension = $_
+            wsl.exe --distribution $WslInstanceName -- code --install-extension $extension | Write-Verbose
+        }
+    }
 }
 
 Export-ModuleMember -Function New-WslFromDevContainer
+Export-ModuleMember -Function Get-DevContainerName
+Export-ModuleMember -Function Get-DevContainerExtensions
