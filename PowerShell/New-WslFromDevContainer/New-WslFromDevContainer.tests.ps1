@@ -26,6 +26,9 @@ BeforeAll {
 {
     "name": "test-container",
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+        "ghcr.io/devcontainers/features/go:1": {}
+    },
     "customizations": {
         "vscode": {
             "extensions": [
@@ -207,6 +210,26 @@ Describe 'New-WslFromDevContainer' {
 
         # Assert
         $actualExtensions | Should -Be $null
+    }
+
+    It 'Gets env section from docker inspect' -Tag 'GetEnvSection' {
+        # Arrange
+        $DevContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonWithExtensions)
+        $containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
+        $containerLabel = $containerName.ToLower()
+        $WorkspaceFolder = $testDataPath
+        $containerId = Invoke-ContainerBuild `
+            -containerName $containerName `
+            -containerLabel $containerLabel `
+            -workspaceFolder $WorkspaceFolder `
+            -devContainerJsonPath $DevContainerJsonPath
+
+        # Act
+        $containerEnv = Get-ContainerEnv -containerId $containerId
+        
+        # Assert
+        $containerEnv | Should -Contain "GOPATH=/go"
+        docker rm $containerId --force --volumes
     }
 
     It 'Creates WSL instance from workspace folder with one devcontainer.json' {

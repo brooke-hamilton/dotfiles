@@ -72,6 +72,15 @@ function Get-DevContainerExtensions {
     return $extensions
 }
 
+function Get-ContainerEnv {
+    param (
+        [string]$containerId
+    )
+    
+    $dockerEnv = docker inspect $containerId --format '{{json .Config.Env}}' | ConvertFrom-Json
+    return $dockerEnv
+}
+
 function Invoke-ContainerBuild {
     param (
         [string]$containerName,
@@ -296,3 +305,5 @@ function New-WslFromDevContainer {
 Export-ModuleMember -Function New-WslFromDevContainer
 Export-ModuleMember -Function Get-DevContainerName
 Export-ModuleMember -Function Get-DevContainerExtensions
+Export-ModuleMember -Function Get-ContainerEnv
+Export-ModuleMember -Function Invoke-ContainerBuild
