@@ -250,8 +250,9 @@ function Set-WslEnv {
             $envVar = $envVar -replace "^PATH=", 'PATH=\$PATH:'
         }
         
-        # Enclose the value in double quotes.
+        # Enclose the value in double quotes and add 'export'.
         $envVar = $envVar -replace '=(.*)', '="$1"'
+        $envVar = "export $envVar"
 
         # Write to /etc/profile because WSL does not read /etc/environment
         $wslCommand = "echo '$envVar' | sudo tee --append /etc/profile"
