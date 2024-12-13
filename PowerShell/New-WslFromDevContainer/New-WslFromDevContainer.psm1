@@ -229,6 +229,15 @@ function Install-Extensions {
     }
 }
 
+<# 
+.SYNOPSIS
+Adds environment variables to the WSL instance from the dev container. 
+
+.DESCRIPTION
+Dev containers use the /etc/environment file to set environment variables, but WSL does not read this file,
+so this function writes the environment variables to the /etc/profile file in the WSL instance. It also prepends the PATH
+variable with the existing path to avoid overwriting it with the container's PATH.
+#>
 function Set-WslEnv {
     param (
         [string[]]$containerEnv,
