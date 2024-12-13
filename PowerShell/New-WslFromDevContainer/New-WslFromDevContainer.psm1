@@ -269,6 +269,30 @@ function Set-WslEnv {
     }
 }
 
+function Invoke-WslCommand {
+    param (
+        [string]$wslInstanceName,
+        [string]$command
+    )
+
+    wsl.exe -d $wslInstanceName -- bash -c "$command" | Write-Verbose
+}
+
+function Set-WindowsGitConfig {
+    param (
+        [string]$wslInstanceName
+
+    )
+
+    Write-Verbose -Message "Creating symlink in WSL instance $wslInstanceName to the Windows git config file..."
+
+    # Remove the existing .gitconfig file if it exists.
+    Invoke-WslCommand -wslInstanceName $wslInstanceName -command  "[ -f .gitconfig ] && rm .gitconfig"
+
+    # Create a symlink to the Windows git config file.
+    Invoke-WslCommand -wslInstanceName $wslInstanceName -command  "ln -s /mnt/c/Users/$Env:USERNAME/.gitconfig ~/.gitconfig"
+}
+
 <#
 .SYNOPSIS
 Creates a WSL instance from a dev container specification (devcontainer.json file).
@@ -351,6 +375,8 @@ function New-WslFromDevContainer {
     New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $userName
 
     Set-WslEnv -containerEnv $containerEnv -wslInstanceName $WslInstanceName
+
+    Set-WindowsGitConfig -wslInstanceName $WslInstanceName
 
     $extensions = Get-DevContainerExtensions -devContainerJsonPath $DevContainerJsonPath
     Install-Extensions -wslInstanceName $WslInstanceName -extensions $extensions
