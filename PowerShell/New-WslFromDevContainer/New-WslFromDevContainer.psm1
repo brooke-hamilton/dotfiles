@@ -76,7 +76,7 @@ function Get-ContainerEnv {
     param (
         [string]$containerId
     )
-    
+
     $dockerEnv = docker inspect $containerId --format '{{json .Config.Env}}' | ConvertFrom-Json
     return $dockerEnv
 }
@@ -183,10 +183,11 @@ function Test-WslInstanceName {
     $existingInstances | ForEach-Object { 
         $existingInstanceName = $_.Trim()
         if ($existingInstanceName -ieq $wslInstanceName) {
-            if($force) {
+            if ($force) {
                 Write-Verbose -Message "Removing existing WSL instance $wslInstanceName..."
                 wsl.exe --unregister $wslInstanceName | Write-Verbose
-            } else{
+            }
+            else {
                 throw "A WSL instance with the name $wslInstanceName already exists. Delete the instance or use the -Force parameter to overwrite it."
             }
         }
