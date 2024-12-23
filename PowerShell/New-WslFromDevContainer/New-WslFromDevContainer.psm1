@@ -320,8 +320,11 @@ Creates a WSL instance from a dev container specification (devcontainer.json fil
 
 .DESCRIPTION
 Automates the creation of a Windows Subsystem for Linux (WSL) instance using a development container specification.
-It builds the container image from the dev container specification, runs the container, and then exports the container to a WSL instance.
-WSL, Docker Desktop, and the devcontainer CLI must be installed before running this script.
+It builds the container image from the dev container specification, runs the container, and then exports the container to
+a WSL instance. WSL, Docker Desktop, and the devcontainer CLI must be installed before running this script.
+NOTE: Devcontainer lifecycle commands, like postCreateCommand, are not run with this script and the git repository is not
+cloned into the WSL instance, as would normally happen when running a dev container. The user of this script should clone
+the repository manually and run any lifecycle automation as defined in the devcontainer.json file.
 
 .PARAMETER WorkspaceFolder
 The path to the workspace folder containing the devcontainer.json file. Defaults to the current directory.
