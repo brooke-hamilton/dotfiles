@@ -323,4 +323,17 @@ Describe 'New-WslFromDevContainer' {
         Assert-WslInstance -wslInstanceName $wslInstanceName
         Remove-WslInstance -wslInstanceName $wslInstanceName
     }
+
+    It 'Does not throws error with two instances of the same name and Force parameter' -Tag 'TwoInstances' {
+        # Arrange
+        $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
+        $wslInstanceName = (Get-Content -Path $devContainerJsonPath -Raw | ConvertFrom-Json).name
+        
+        # Act
+        { New-WslFromDevContainer -WorkspaceFolder $testDataPath } | Should -Not -Throw
+        { New-WslFromDevContainer -WorkspaceFolder $testDataPath -Force } | Should -Not -Throw
+
+        Assert-WslInstance -wslInstanceName $wslInstanceName
+        Remove-WslInstance -wslInstanceName $wslInstanceName
+    }
 }

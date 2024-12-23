@@ -59,11 +59,11 @@ function Get-DevContainerExtensions {
     $jsonContent = Get-DevContainerJson -devContainerJsonPath $devContainerJsonPath
 
     $extensions = $null
-    if($jsonContent.PSObject.properties["customizations"]) {
+    if ($jsonContent.PSObject.properties["customizations"]) {
         $customizations = $jsonContent.customizations
-        if($customizations.PSObject.properties["vscode"]) {
+        if ($customizations.PSObject.properties["vscode"]) {
             $vscode = $customizations.vscode
-            if($vscode.PSObject.properties["extensions"]) {
+            if ($vscode.PSObject.properties["extensions"]) {
                 $extensions = $vscode.extensions
             }
         }
@@ -114,7 +114,7 @@ function Get-WslUserName {
 
     # Devcontainers create a user name with user id of 1000. The default user name is 'vscode', but it can be changed
     # in the dev container configuration, so it needs to be retrieved from the WSL instance.
-    return wsl.exe --distribution $wslInstanceName -- id -nu 1000
+    return Invoke-Wsl $wslInstanceName "id -nu 1000"
 }
 
 function Set-UserAccount {
@@ -123,14 +123,16 @@ function Set-UserAccount {
         [string]$OldUserName,
         [string]$NewUserName
     )
-    wsl.exe --distribution $wslInstanceName -- usermod --login $NewUserName $OldUserName
-    wsl.exe --distribution $wslInstanceName -- usermod --home /home/$NewUserName -m $NewUserName
-    wsl.exe --distribution $wslInstanceName -- groupmod --new-name $NewUserName $OldUserName
+
+    Write-Verbose "Changing user account from $OldUserName to $NewUserName..."
+    Invoke-Wsl $wslInstanceName "usermod --login $NewUserName $OldUserName" | Write-Verbose
+    Invoke-Wsl $wslInstanceName "usermod --home /home/$NewUserName -m $NewUserName" | Write-Verbose
+    Invoke-Wsl $wslInstanceName "groupmod --new-name $NewUserName $OldUserName" | Write-Verbose
     
     # Dev containers use sudoers.d files to grant sudo permissions to the user without requiring a password
     # This makes the behavior of the WSL instance consistent with the dev container.
-    wsl.exe --distribution $wslInstanceName -- mv /etc/sudoers.d/$OldUserName /etc/sudoers.d/$NewUserName
-    wsl.exe --distribution $wslInstanceName -- sed -i "s/$OldUserName/$NewUserName/g" /etc/sudoers.d/$NewUserName
+    Invoke-Wsl $wslInstanceName "mv /etc/sudoers.d/$OldUserName /etc/sudoers.d/$NewUserName" | Write-Verbose
+    Invoke-Wsl $wslInstanceName "sed -i 's/$OldUserName/$NewUserName/g' /etc/sudoers.d/$NewUserName" | Write-Verbose
 }
 
 function New-WslConfigFile {
@@ -142,7 +144,9 @@ function New-WslConfigFile {
     Write-Verbose -Message "Writing /etc/wsl.conf in $wslInstanceName..."
     $configFileText = "[boot]`nsystemd=false`n`n[user]`ndefault=$UserName`n"
     $wslCommand = "echo '$configFileText' > /etc/wsl.conf"
-    wsl.exe -d $wslInstanceName -- bash -c "$wslCommand" | Write-Verbose
+    Invoke-Wsl $wslInstanceName "$wslCommand" | Write-Verbose
+    
+    # Shut down the wsl instance to apply the config file changes
     wsl.exe --terminate $wslInstanceName | Write-Verbose
 }
 
@@ -168,23 +172,33 @@ function Get-WslInstanceFilePath {
     return Join-Path -Path $wslInstancesFolder -ChildPath $wslInstanceName
 }
 
+function Test-WslInstanceName {
+    param (
+        [string]$wslInstanceName,
+        [bool]$force
+    )
+
+    Write-Verbose "Checking if WSL instance $wslInstanceName already exists..."
+    $existingInstances = wsl.exe --list
+    $existingInstances | ForEach-Object { 
+        $existingInstanceName = $_.Trim()
+        if ($existingInstanceName -ieq $wslInstanceName) {
+            if($force) {
+                Write-Verbose -Message "Removing existing WSL instance $wslInstanceName..."
+                wsl.exe --unregister $wslInstanceName | Write-Verbose
+            } else{
+                throw "A WSL instance with the name $wslInstanceName already exists. Delete the instance or use the -Force parameter to overwrite it."
+            }
+        }
+    }
+}
+
 function New-WslInstanceFromContainer {
     param (
         [string]$containerId,
         [string]$wslInstanceName,
         [string]$wslInstancePath
     )
-
-    $existingInstances = wsl.exe --list | ForEach-Object { 
-        $existingInstanceName = $_.Trim()
-        if ($existingInstanceName -ieq $wslInstanceName) {
-            throw "A WSL instance with the name $wslInstanceName already exists."
-        }
-    }
-
-    if ($existingInstances -contains $wslInstanceName) {
-        throw "A WSL instance with the name $wslInstanceName already exists."
-    }
 
     Write-Verbose -Message "Importing WSL instance $wslInstanceName from container $containerId to $wslInstancePath ..."
     docker export "$containerId" | wsl.exe --import $wslInstanceName $wslInstancePath - | Write-Verbose
@@ -197,8 +211,8 @@ function Test-Command {
         [string]$commandName
     )
     try {
-        $devContainerCli = Get-Command -Name $commandName -ErrorAction Stop
-        Write-Verbose -Message "$commandName is installed: $($devContainerCli.Path)"
+        $commandRef = Get-Command -Name $commandName -ErrorAction Stop
+        Write-Verbose -Message "$commandName is installed: $($commandRef.Path)"
     }
     catch {
         throw "$commandName is not installed. Please install it before running this script."
@@ -219,12 +233,13 @@ function Install-Extensions {
         [string[]]$extensions
     )
 
-    if($extensions) {
+    if ($extensions) {
         Write-Verbose -Message "Installing extensions in WSL instance $WslInstanceName..."
         $extensions | ForEach-Object {
-            wsl.exe --distribution $WslInstanceName -- code --install-extension $_ | Write-Verbose
+            Invoke-Wsl $wslInstanceName "code --install-extension $_" | Write-Verbose
         }
-    } else {
+    }
+    else {
         Write-Verbose -Message "No extensions to install."
     }
 }
@@ -265,32 +280,37 @@ function Set-WslEnv {
 
         # Write to /etc/profile because WSL does not read /etc/environment
         $wslCommand = "echo '$envVar' | sudo tee --append /etc/profile"
-        wsl.exe -d $wslInstanceName -- bash -c "$wslCommand" | Write-Verbose
+        Invoke-Wsl $wslInstanceName "$wslCommand" | Write-Verbose
     }
 }
 
-function Invoke-WslCommand {
+<#
+.SYNOPSIS
+Creates a WSL instance from a dev container specification (devcontainer.json file).
+#>
+function Invoke-Wsl {
     param (
+        [Parameter(Position = 0, Mandatory = $true)]
         [string]$wslInstanceName,
+        [Parameter(Position = 1, Mandatory = $true)]
         [string]$command
     )
 
-    wsl.exe -d $wslInstanceName -- bash -c "$command" | Write-Verbose
+    wsl.exe -d $wslInstanceName -- bash -c "$command"
 }
 
 function Set-WindowsGitConfig {
     param (
         [string]$wslInstanceName
-
     )
 
     Write-Verbose -Message "Creating symlink in WSL instance $wslInstanceName to the Windows git config file..."
 
     # Remove the existing .gitconfig file if it exists.
-    Invoke-WslCommand -wslInstanceName $wslInstanceName -command  "[ -f .gitconfig ] && rm .gitconfig"
+    Invoke-Wsl $wslInstanceName "[ -f .gitconfig ] && rm .gitconfig" | Write-Verbose
 
     # Create a symlink to the Windows git config file.
-    Invoke-WslCommand -wslInstanceName $wslInstanceName -command  "ln -s /mnt/c/Users/$Env:USERNAME/.gitconfig ~/.gitconfig"
+    Invoke-Wsl $wslInstanceName "ln -s /mnt/c/Users/$Env:USERNAME/.gitconfig ~/.gitconfig" | Write-Verbose
 }
 
 <#
@@ -320,6 +340,9 @@ the dev container, which is typically 'vscode'.
 
 .PARAMETER WslInstancesFolder
 The path to the folder where the WSL instances are stored. Defaults to the user's profile folder.
+
+.PARAMETER Force
+When set to true, automatically deletes an existing WSL instance with the same name if it exists.
 #>  
 function New-WslFromDevContainer {
     [CmdletBinding()]
@@ -341,9 +364,13 @@ function New-WslFromDevContainer {
 
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrWhiteSpace()]
-        [string]$WslInstancesFolder = (Join-Path -Path $Env:USERPROFILE -ChildPath "wsl")
+        [string]$WslInstancesFolder = (Join-Path -Path $Env:USERPROFILE -ChildPath "wsl"),
+
+        [Parameter(Mandatory = $false)]
+        [switch]$Force
     )
 
+    Write-Verbose "FORCE0 = $Force"
     Test-Command -commandName "devcontainer"
     Test-Command -commandName "docker"
     Test-Command -commandName "wsl"
@@ -352,6 +379,10 @@ function New-WslFromDevContainer {
     $DevContainerJsonPath = Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath
     $containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
     $containerLabel = $containerName.ToLower()
+    $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName
+    Write-Verbose "FORCE3 = $Force"
+    Test-WslInstanceName -wslInstanceName $WslInstanceName -force $Force
+    
     $containerId = Invoke-ContainerBuild `
         -containerName $containerName `
         -containerLabel $containerLabel `
@@ -359,7 +390,7 @@ function New-WslFromDevContainer {
         -devContainerJsonPath $DevContainerJsonPath
 
     $containerEnv = Get-ContainerEnv -containerId $containerId
-    $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName
+    
     $wslInstancePath = Get-WslInstanceFilePath -wslInstanceName $WslInstanceName -wslInstancesFolder $WslInstancesFolder
     New-WslInstanceFromContainer -containerId $containerId -wslInstanceName $WslInstanceName -wslInstancePath $wslInstancePath
 
