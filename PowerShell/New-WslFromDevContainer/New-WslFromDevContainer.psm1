@@ -76,7 +76,7 @@ function Get-ContainerEnv {
     param (
         [string]$containerId
     )
-
+    
     $dockerEnv = docker inspect $containerId --format '{{json .Config.Env}}' | ConvertFrom-Json
     return $dockerEnv
 }
@@ -183,11 +183,10 @@ function Test-WslInstanceName {
     $existingInstances | ForEach-Object { 
         $existingInstanceName = $_.Trim()
         if ($existingInstanceName -ieq $wslInstanceName) {
-            if ($force) {
+            if($force) {
                 Write-Verbose -Message "Removing existing WSL instance $wslInstanceName..."
                 wsl.exe --unregister $wslInstanceName | Write-Verbose
-            }
-            else {
+            } else{
                 throw "A WSL instance with the name $wslInstanceName already exists. Delete the instance or use the -Force parameter to overwrite it."
             }
         }
@@ -320,11 +319,8 @@ Creates a WSL instance from a dev container specification (devcontainer.json fil
 
 .DESCRIPTION
 Automates the creation of a Windows Subsystem for Linux (WSL) instance using a development container specification.
-It builds the container image from the dev container specification, runs the container, and then exports the container to
-a WSL instance. WSL, Docker Desktop, and the devcontainer CLI must be installed before running this script.
-NOTE: Devcontainer lifecycle commands, like postCreateCommand, are not run with this script and the git repository is not
-cloned into the WSL instance, as would normally happen when running a dev container. The user of this script should clone
-the repository manually and run any lifecycle automation as defined in the devcontainer.json file.
+It builds the container image from the dev container specification, runs the container, and then exports the container to a WSL instance.
+WSL, Docker Desktop, and the devcontainer CLI must be installed before running this script.
 
 .PARAMETER WorkspaceFolder
 The path to the workspace folder containing the devcontainer.json file. Defaults to the current directory.
