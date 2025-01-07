@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
 properties:
+  configurationVersion: 0.2.0
   resources:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: install-sysinternals
@@ -37,11 +38,11 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: install-M365
+      id: github-cli
       directives:
         allowPrerelease: true
       settings:
-        id: Microsoft.Office
+        id: GitHub.cli
         source: winget
         Ensure: Present
 
@@ -53,14 +54,3 @@ properties:
         id: "icsharpcode.ILSpy"
         source: winget
         Ensure: Present
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: install-teams
-      directives:
-        allowPrerelease: true
-      settings:
-        id: Microsoft.Teams
-        source: winget
-        Ensure: Present
-
-  configurationVersion: 0.2.0

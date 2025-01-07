@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
 properties:
+  configurationVersion: 0.2.0
   resources:
     - resource: PSDscResources/Registry
       id: set-desktop-background-solid
@@ -74,5 +75,3 @@ properties:
         valuetype: String
         force: true
         Ensure: Present
-
-  configurationVersion: 0.2.0

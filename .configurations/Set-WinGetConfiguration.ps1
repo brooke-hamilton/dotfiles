@@ -1,5 +1,3 @@
-#Requires -RunAsAdministrator
-
 <#
 .SYNOPSIS
 Validates and applies the yaml winget configuration to a Windows machine.
@@ -17,7 +15,8 @@ File path to the yaml configuration file to be applied by winget.
 Set-WinGetConfiguration.ps1 -YamlConfigFilePath ".\radius.dsc.yaml"
 #>
 param (
-    [string]$YamlConfigFilePath = "$PSScriptRoot\radius.dsc.yaml",
+    [Parameter(Mandatory = $true)]
+    [string]$YamlConfigFilePath,
 
     [bool]$validateFirst = $false
 )

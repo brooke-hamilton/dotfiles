@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
 properties:
+  configurationVersion: 0.2.0
   resources:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: remove-your-phone
@@ -99,5 +100,3 @@ properties:
         id: "Microsoft.BingWeather_8wekyb3d8bbwe"
         source: "msstore"
         Ensure: Absent
-
-  configurationVersion: 0.2.0
