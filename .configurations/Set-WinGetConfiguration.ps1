@@ -38,5 +38,3 @@ if ($validateFirst) {
 
 Write-Host "Starting WinGet configuration from $YamlConfigFilePath..."
 winget configure --file $YamlConfigFilePath --accept-configuration-agreements --disable-interactivity
-
-Write-Host "WinGet configuration complete. Please reboot if the configuration applied updates to Windows features."
