@@ -1,0 +1,3 @@
+[submodule "submodules/radius-dev-config"]
+	path = submodules/radius-dev-config
+	url = https://github.com/brooke-hamilton/radius-dev-config
