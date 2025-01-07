@@ -36,8 +36,6 @@ if ($validateFirst) {
     winget configure validate --file $YamlConfigFilePath --disable-interactivity
 }
 
-Confirm-Configuration
-
 Write-Host "Starting WinGet configuration from $YamlConfigFilePath..."
 winget configure --file $YamlConfigFilePath --accept-configuration-agreements --disable-interactivity
 
