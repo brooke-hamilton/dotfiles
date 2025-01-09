@@ -18,7 +18,6 @@ fi
 # Set WSL_WORKSPACE_FILE to a default value if not already set in the .env file.
 if [ -z "$WSL_WORKSPACE_FILE" ]; then
     # The windows path to the workspace vhdx file. Default is %userprofile%\wsl\workspace.vhdx.
-    #WSL_WORKSPACE_FILE=$(/mnt/c/WINDOWS/system32/cmd.exe /c "echo %userprofile%\wsl\workspace.vhdx")
     WSL_WORKSPACE_FILE=$($CMD_EXE /c "echo %userprofile%\wsl\workspace.vhdx")
     # Remove the trailing newline character from the Windows path.
     WSL_WORKSPACE_FILE="${WSL_WORKSPACE_FILE::-1}"
