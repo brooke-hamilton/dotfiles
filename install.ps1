@@ -6,6 +6,9 @@ if((Get-ChildItem -Path "$PSScriptRoot\submodules\radius-dev-config" | Measure-O
     exit
 }
 
+# Enable winget configuration
+winget configure --enable
+
 # Personal preferences
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\.configurations\desktop-settings.dsc.yaml"
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\.configurations\apps-to-remove.dsc.yaml"
