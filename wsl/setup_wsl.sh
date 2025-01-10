@@ -24,10 +24,9 @@ sudo apt install git -y
 # https://wslutiliti.es/wslu/install.html#debian
 sudo apt install wslu -y
 
-# Check if the "[user]" setting already exists in /etc/wsl.conf. If not, add the current user.
-# This setting is not required when installing WSL from the Windows Store, but it is helpful when exporting the
-# distro and importing it as another distro on the same machine.
-if ! grep -q "\[user\]" /etc/wsl.conf; then
-    # Append the "[user]" setting to /etc/wsl.conf
-    echo -e "\n[user]\ndefault=$(whoami)" | sudo tee -a /etc/wsl.conf > /dev/null
-fi
+# Procmon for Linux
+# https://github.com/microsoft/ProcMon-for-Linux/blob/2.0.0.0/INSTALL.md#ubuntu-2004-2204-2404
+wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+sudo dpkg -i packages-microsoft-prod.deb
+sudo apt-get update
+sudo apt-get install procmon
