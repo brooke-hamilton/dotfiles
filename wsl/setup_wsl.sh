@@ -23,10 +23,9 @@ sudo apt install git -y
 # WSL Utilities
 # https://wslutiliti.es/wslu/install.html#debian
 sudo apt install wslu -y
-
 # Procmon for Linux
 # https://github.com/microsoft/ProcMon-for-Linux/blob/2.0.0.0/INSTALL.md#ubuntu-2004-2204-2404
 wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 sudo dpkg -i packages-microsoft-prod.deb
 sudo apt-get update
-sudo apt-get install procmon
+sudo apt-get install procmon libncurses6 -y
