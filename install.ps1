@@ -15,3 +15,5 @@ if((Get-ChildItem -Path "$PSScriptRoot\submodules\radius-dev-config" | Measure-O
 # Radius setup
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\submodules\radius-dev-config\.configurations\radius.dsc.yaml"
 
+# Copy .wslconfig to user profile
+Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"

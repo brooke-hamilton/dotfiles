@@ -31,7 +31,3 @@ if ! grep -q "\[user\]" /etc/wsl.conf; then
     # Append the "[user]" setting to /etc/wsl.conf
     echo -e "\n[user]\ndefault=$(whoami)" | sudo tee -a /etc/wsl.conf > /dev/null
 fi
-
-# Make a symlink to the Windows wsl.exe in /usr/bin so that wsl.exe can be run from sudo.
-# This is required for the wsl_startup.sh.
-sudo ln -s /mnt/c/Windows/system32/wsl.exe /usr/bin/wsl.exe
