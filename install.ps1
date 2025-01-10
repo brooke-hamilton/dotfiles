@@ -18,5 +18,8 @@ winget configure --enable
 # Radius setup
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\submodules\radius-dev-config\.configurations\radius.dsc.yaml"
 
+# Dev container CLI
+npm install -g @devcontainers/cli
+
 # Copy .wslconfig to user profile
 Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"

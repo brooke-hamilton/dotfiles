@@ -1,4 +1,4 @@
-# shellcheck disable=SC2148
+#!/bin/bash
 
 # Description: Installs and configures tools for WSL.
 # Usage: ./wsl-setup.sh

@@ -5,7 +5,7 @@ This setup is for Windows 11 + WSL as a dev environment for [Radius](https://git
 ## Prerequisites
 
 - Windows 11 24H2 Pro or Enterprise
-- `winget` version 1.6 or higher (Open a terminal window and run `winget --version` to check.)
+- [`winget`](https://learn.microsoft.com/en-us/windows/package-manager/winget/#install-winget) version 1.6 or higher (Open a terminal window and run `winget --version` to check.)
 
 ## Steps
 
