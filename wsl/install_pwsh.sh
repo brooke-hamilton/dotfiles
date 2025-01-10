@@ -22,6 +22,3 @@ sudo apt-get install -f
 
 # Delete the downloaded package file
 rm powershell_7.4.6-1.deb_amd64.deb
-
-# Start PowerShell Preview
-pwsh
