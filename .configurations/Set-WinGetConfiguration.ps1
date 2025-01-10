@@ -29,8 +29,6 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Write-Error "WinGet is not installed."
 }
 
-winget configure --enable
-
 if ($validateFirst) {
     Write-Host "Validating WinGet configuration..."
     winget configure validate --file $YamlConfigFilePath --disable-interactivity
