@@ -10,9 +10,7 @@ This setup is for Windows 11 + WSL as a dev environment for [Radius](https://git
 ## Steps
 
 1. Log into Windows and clone this repo into the %userprofile% profile folder. Be sure to include submodules: `git clone https://github.com/brooke-hamilton/dotfiles --recurse-submodules`
-1. Open a PowerShell terminal window as Administrator, navigate to the repo folder, and run `.\install.sh`
+1. Open a PowerShell terminal window as Administrator, navigate to the repo folder, and run `.\install.ps1`
 1. Reboot.
-1. Open Windows Terminal and launch the Ubuntu WSL distro. Complete the Ubuntu [OOBE](https://en.wikipedia.org/wiki/Out-of-box_experience) setup.
-1. From the Ubuntu terminal, run `./install_wsl_ubuntu.sh`.
-
-> NOTE: You can run `./install_wsl_ubuntu.sh` from its location on windows by navigating to `/mnt/c/users/<username>/dotfiles`.
+1. Open Windows Terminal and launch the Ubuntu WSL distro. Complete the Ubuntu [OOBE](https://en.wikipedia.org/wiki/Out-of-box_experience) setup, i.e., log into Ubuntu and set your credentials.
+1. From the Ubuntu terminal, run `./install_wsl_ubuntu.sh`. (You can run it from its Windows location at `/mnt/c/users/<username>/dotfiles`.)

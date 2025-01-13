@@ -2,7 +2,7 @@
 
 This guide follows the pattern used by dev containers in which a single workspace can be mapped into multiple dev containers. In this case we want to have a single VHDX file that serves as a shared workspace that is mounted to all WSL distributions.
 
-## Create a new VHDX file for the shared workspace
+## 1. Create a new VHDX file for the shared workspace
 
 Create a new VHDX file. You can do this in PowerShell on Windows with this command.
 
@@ -12,7 +12,7 @@ $vhdPath = "$Env:USERPROFILE\wsl\workspace.vhdx"
 New-VHD -Path $vhdPath -SizeBytes 200GB -Dynamic
 ```
 
-## Format the VHDX files as EXT4
+## 2. Format the VHDX files as EXT4
 
 In PowerShell on Windows, mount the disk into your default WSL instance.
 
@@ -35,12 +35,11 @@ sdd   8:48   0   200G  0 disk
 
 Find the `NAME` in the row that corresponds with the disk you mounted. In the example above, the `NAME` is `sdd`.
 
-Format the disk using the command below.
+Format the disk using the mkfs. `sudo mkfs.ext4 /dev/<NAME>`, replacing `<NAME>` with the NAME output from the `lsblk` command.
+
+An example of running the command, and its output, are below:
 
 ```BASH
-# sudo mkfs.ext4 /dev/<NAME>, replacing <NAME> with the NAME output from the lsblk command.
-
-# For example:
 $ sudo mkfs.ext4 /dev/sdd
 mke2fs 1.47.0 (5-Feb-2023)
 Discarding device blocks: done
@@ -62,15 +61,17 @@ Go back to Powershell on Windows, and unmount the VHDX file using this command.
 wsl.exe --unmount $vhdPath
 ```
 
-## Configure WSL to automatically mount the disk upon startup
+## 3. Configure WSL to automatically mount the disk upon startup
 
-This repo contains a script that will mount the workspace drive to all WSL distros upon distro startup. (WSL mount configurations affect all distros.) The must be configured to run from any WSL distro where you want the workspace drive mounted.
+This repo contains a script that will mount the workspace drive to all WSL distros upon distro startup. The script must be configured to run from any WSL distro where you want the workspace drive mounted.
+
+> NOTE: It is not possible to mount a VHDX to only one distro because the `wsl.exe --mount` command will mount the disk on all distros.
 
 The configuration to run the startup script is in the `/etc/wsl.conf` file. If the file does not exist, create it. Otherwise, add the configuration below to the file:
 
 ```INI
 [boot]
-command="<PATH TO YOUR STARTUP SCRIPT, e.g. /mnt/c/repos/dotfiles/wsl/wsl_startup.sh>"
+command="<PATH TO YOUR STARTUP SCRIPT, e.g. /mnt/c/windows/<USERNAME>/dotfiles/wsl/wsl_startup.sh>"
 ```
 
 Shut down WSL so that the startup script will run the next time you start up a distribution.
@@ -81,10 +82,11 @@ wsl.exe --shutdown
 
 Log into the WSL distribution and verify that your workspace has been mounted.
 
-## Change ownership of the workspace mount to the default WSL user
+## 4. Change ownership of the workspace mount to the default WSL user
 
 > Note: You only have to do this once for a VHDX workspace file.
 
 ```BASH
-sudo chown 1000:1000 /mnt/wsl/workspacedemo
+# For example, if the mounted disk is named "workspace", run this command.
+sudo chown 1000:1000 /mnt/wsl/workspace
 ```
