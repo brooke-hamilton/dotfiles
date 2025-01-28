@@ -32,12 +32,13 @@ Stops the Windows Sandbox process if it is already running.
 function Stop-Wsb {
     # Get list of running sandbox instances
     $runningInstances = wsb list | Select-String -Pattern "^[0-9a-f-]+" | ForEach-Object { $_.Matches.Value }
-    
-    # Stop each running instance
-    foreach ($instanceId in $runningInstances) {
-        Write-Host "Stopping sandbox instance: $instanceId"
-        wsb stop --id $instanceId
-        Start-Sleep -Seconds 2
+    if ($runningInstances) {
+        # Stop each running instance
+        foreach ($instanceId in $runningInstances) {
+            Write-Host "Stopping sandbox instance: $instanceId"
+            wsb stop --id $instanceId
+            Start-Sleep -Seconds 2
+        }
     }
 }
 
@@ -122,4 +123,5 @@ Stop-Wsb
 Copy-VCLibs
 $wsbFilePath = Write-WsbConfigFile
 Write-Host "$wsbFilePath"
-WindowsSandbox $wsbFilePath
+#WindowsSandbox $wsbFilePath
+. $wsbFilePath
