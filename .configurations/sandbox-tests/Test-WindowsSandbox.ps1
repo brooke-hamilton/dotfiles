@@ -31,12 +31,15 @@ $sandboxBootstrapScript = Join-Path -Path $sandboxWorkingDirectory -ChildPath "S
 Stops the Windows Sandbox process if it is already running.
 #>
 function Stop-Wsb {
-    $sandbox = Get-Process 'vmmemWindowsSandbox' -ErrorAction SilentlyContinue
-    if ($sandbox) {
-        $sandbox | Stop-Process
+    # Get list of running sandbox instances
+    $runningInstances = wsb list | Select-String -Pattern "^[0-9a-f-]+" | ForEach-Object { $_.Matches.Value }
+    
+    # Stop each running instance
+    foreach ($instanceId in $runningInstances) {
+        Write-Host "Stopping sandbox instance: $instanceId"
+        wsb stop --id $instanceId
         Start-Sleep -Seconds 2
     }
-    Remove-Variable sandbox
 }
 
 <#
