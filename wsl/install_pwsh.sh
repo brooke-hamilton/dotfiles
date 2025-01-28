@@ -1,24 +1,23 @@
 #!/bin/bash
 
-#https://learn.microsoft.com/en-us/powershell/scripting/install/install-ubuntu?view=powershell-7.4
-###################################
-# Prerequisites
-
-# Update the list of packages
-sudo apt-get update
+# Modified from:
+# https://learn.microsoft.com/en-us/powershell/scripting/install/install-ubuntu?view=powershell-7.4
 
 # Install pre-requisite packages.
-sudo apt-get install -y wget
+sudo sudo apt-get update && sudo apt-get install -y wget jq
+
+# Get the download URL for the latest PowerShell deb package
+url=$(curl -s https://api.github.com/repos/PowerShell/PowerShell/releases/latest | \
+        jq -r '.assets[] | select(.name | endswith(".deb")) | .browser_download_url')
 
 # Download the PowerShell package file
-wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/powershell_7.4.6-1.deb_amd64.deb
+wget -O powershell.deb "$url"
 
-###################################
 # Install the PowerShell package
-sudo dpkg -i powershell_7.4.6-1.deb_amd64.deb
+sudo dpkg -i powershell.deb
 
 # Resolve missing dependencies and finish the install (if necessary)
 sudo apt-get install -f
 
 # Delete the downloaded package file
-rm powershell_7.4.6-1.deb_amd64.deb
+rm powershell.deb

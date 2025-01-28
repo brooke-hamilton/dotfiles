@@ -6,22 +6,19 @@ function Find-DevContainerJsonFile {
         [string]$workspaceFolder,
         [string]$devContainerJsonPath
     )
-    # Find the dev container json file
+
     if ($devContainerJsonPath) {
         if (-not (Test-Path -Path $devContainerJsonPath -PathType Leaf)) {
-            throw "No devcontainer.json file found."
+            throw "No devcontainer.json file found at the specified path."
         }
         return $devContainerJsonPath
     }
-    else {
-        [System.IO.FileInfo[]]$devContainerJson = Get-ChildItem -Path $workspaceFolder -Filter "devcontainer.json" -Recurse -File
-        if (-not $devContainerJson) {
-            throw "No devcontainer.json files found."
-        }
-        if ($devContainerJson.Length -gt 1) {
-            throw "Multiple devcontainer.json files found. Please provide the DevContainerJsonPath parameter."
-        }
-        return $devContainerJson[0].FullName
+
+    $devContainerJson = Get-ChildItem -Path $workspaceFolder -Filter "devcontainer.json" -Recurse -File
+    switch ($devContainerJson.Count) {
+        0 { throw "No devcontainer.json files found in the workspace folder." }
+        1 { return $devContainerJson[0].FullName }
+        default { throw "Multiple devcontainer.json files found. Please provide the DevContainerJsonPath parameter." }
     }
 }
 
