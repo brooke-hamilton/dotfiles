@@ -17,7 +17,6 @@ $progressPreference = 'silentlyContinue'
 # Folder from the host machine that contains configuration files
 $hostFolder = (Get-Item -Path $PSScriptRoot).Parent.FullName
 
-#$hostResourcesFolder = 'c:\temp\wsb-resources'
 $hostResourcesFolder = "$PSScriptRoot\resources"
 $sandboxResourcesFolder = 'c:\wsb-resources'
 $sandboxConfigRootFolder = "C:\.configurations"
@@ -47,18 +46,23 @@ function Stop-Wsb {
 Copies the Microsoft.VCLibs.x64.14.00.Desktop.appx file from the Windows SDK to the sandbox resources folder.
 #>
 function Copy-VCLibs {
-    $sdkPath = 'C:\Program Files (x86)\Microsoft SDKs\Windows Kits\10\ExtensionSDKs\Microsoft.VCLibs.Desktop\14.0\Appx\Retail\x64\Microsoft.VCLibs.x64.14.00.Desktop.appx'
+    $vcLibsFileName = "Microsoft.VCLibs.x64.14.00.Desktop.appx"
+    $vcLibsSourcePath = Join-Path -Path 'C:\Program Files (x86)\Microsoft SDKs\Windows Kits\10\ExtensionSDKs\Microsoft.VCLibs.Desktop\14.0\Appx\Retail\x64\' -ChildPath $vcLibsFileName
     $destinationFolder = Join-Path -Path $PSScriptRoot -ChildPath 'resources'
+    $vcLibsDestinationPath = Join-Path -Path $destinationFolder -ChildPath $vcLibsFileName
 
     if (-not (Test-Path $destinationFolder)) {
         New-Item -Path $destinationFolder -ItemType Directory > $null
     }
 
-    if (Test-Path $sdkPath) {
+    if(-not (Test-Path $vcLibsDestinationPath)) {
+        
+        if (-not (Test-Path $vcLibsSourcePath)) {    
+            throw "VCLibs file not found at expected path: $vcLibsSourcePath"
+        }
+        
         Write-Host "Copying VCLibs file to sandbox resources folder..."
-        Copy-Item -Path $sdkPath -Destination $destinationFolder -Force
-    } else {
-        throw "VCLibs file not found at expected path: $sdkPath"
+        Copy-Item -Path $vcLibsSourcePath -Destination $destinationFolder
     }
 
     $appInstallerName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
@@ -77,7 +81,6 @@ function Copy-VCLibs {
         Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile $appInstallerFilePath
     }
 }
-
 
 <#
 .SYNOPSIS
