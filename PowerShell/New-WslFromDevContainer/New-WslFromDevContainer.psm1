@@ -343,6 +343,17 @@ The path to the folder where the WSL instances are stored. Defaults to the user'
 
 .PARAMETER Force
 When set to true, automatically deletes an existing WSL instance with the same name if it exists.
+
+.EXAMPLE
+# Create a WSL instance from the current directory's dev container
+New-WslFromDevContainer
+
+.EXAMPLE
+# Create a WSL instance with a specific name and force overwrite
+New-WslFromDevContainer -WorkspaceFolder "./myproject" -WslInstanceName "mydev" -Force
+
+.NOTES
+Requires WSL, Docker Desktop, and devcontainer CLI to be installed.
 #>  
 function New-WslFromDevContainer {
     [CmdletBinding()]

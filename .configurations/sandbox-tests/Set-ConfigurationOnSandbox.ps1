@@ -28,7 +28,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $progressPreference = 'silentlyContinue'
 
-../Install-Winget.ps1 -FileCachePath $FileCachePath
+.\Install-Winget.ps1 -FileCachePath $FileCachePath
 
 if($SkipConfiguration) {
     Write-Host "Skipping configuration."
