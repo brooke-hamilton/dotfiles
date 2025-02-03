@@ -2,10 +2,7 @@
 Set-StrictMode -Version 3.0
 
 BeforeDiscovery {
-    if(Get-Module -Name "New-WslFromDevContainer") {
-        Remove-Module "New-WslFromDevContainer"
-    }
-    Import-Module "$PSScriptRoot\New-WslFromDevContainer.psm1"
+    Import-Module "$PSScriptRoot\New-WslFromDevContainer.psm1" -Force
 }
 
 BeforeAll {

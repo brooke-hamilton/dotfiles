@@ -15,6 +15,7 @@ function Find-DevContainerJsonFile {
     }
 
     $devContainerJson = Get-ChildItem -Path $workspaceFolder -Filter "devcontainer.json" -Recurse -File
+    if(-not $devContainerJson) { throw "No devcontainer.json files found in the workspace folder." }
     switch ($devContainerJson.Count) {
         0 { throw "No devcontainer.json files found in the workspace folder." }
         1 { return $devContainerJson[0].FullName }
