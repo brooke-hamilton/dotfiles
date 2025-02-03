@@ -1,13 +1,13 @@
 BeforeAll {
     # Import the module
-    Import-Module $PSScriptRoot\IniFileManager.psm1 -Force
+    Import-Module $PSScriptRoot\IniFileEditor.psm1 -Force
 
     # Create a temporary directory for test files
     $script:TestDir = Join-Path $TestDrive 'IniTests'
     New-Item -ItemType Directory -Path $script:TestDir -Force | Out-Null
 }
 
-Describe 'IniFileManager' {
+Describe 'IniFileEditor' {
     BeforeEach {
         # Create a fresh test file path for each test
         $script:TestFile = Join-Path $script:TestDir "test_$(New-Guid).ini"
