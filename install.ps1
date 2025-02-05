@@ -18,8 +18,11 @@ winget configure --enable
 # Radius setup
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\submodules\radius-dev-config\.configurations\radius.dsc.yaml"
 
-# Dev container CLI
+# Dev container CLI (refresh the path first because npm was installed above)
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 npm install -g @devcontainers/cli
 
 # Copy .wslconfig to user profile
 Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"
+
+. "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
