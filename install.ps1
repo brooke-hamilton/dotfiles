@@ -26,3 +26,5 @@ npm install -g @devcontainers/cli
 Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"
 
 . "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
+
+# Run git\configure_git.sh
