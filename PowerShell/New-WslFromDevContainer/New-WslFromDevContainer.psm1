@@ -1,6 +1,15 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = "Stop"
 
+<#
+.SYNOPSIS
+Finds the devcontainer.json file in the specified workspace folder or at the specified path.
+
+.DESCRIPTION
+This function searches for the devcontainer.json file in the given workspace folder. If a specific path is provided,
+it checks if the file exists at that path. If multiple devcontainer.json files are found, it throws an error unless
+a specific path is provided.
+#>
 function Find-DevContainerJsonFile {
     param (
         [string]$workspaceFolder,
