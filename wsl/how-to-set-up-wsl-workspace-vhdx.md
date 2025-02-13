@@ -71,7 +71,7 @@ The configuration to run the startup script is in the `/etc/wsl.conf` file. If t
 
 ```INI
 [boot]
-command="<PATH TO YOUR STARTUP SCRIPT, e.g. /mnt/c/windows/<USERNAME>/dotfiles/wsl/wsl_startup.sh>"
+command="<PATH TO YOUR STARTUP SCRIPT, e.g. /mnt/c/users/<USERNAME>/dotfiles/wsl/wsl_startup.sh>"
 ```
 
 Shut down WSL so that the startup script will run the next time you start up a distribution.
