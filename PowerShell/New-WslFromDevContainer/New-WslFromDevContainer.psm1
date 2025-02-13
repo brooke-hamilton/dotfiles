@@ -18,15 +18,15 @@ function Find-DevContainerJsonFile {
 
     if ($devContainerJsonPath) {
         if (-not (Test-Path -Path $devContainerJsonPath -PathType Leaf)) {
-            throw "No devcontainer.json file found at the specified path."
+            throw "No devcontainer.json file found."
         }
         return $devContainerJsonPath
     }
 
     [System.IO.FileInfo[]]$devContainerJson = Get-ChildItem -Path $workspaceFolder -Filter "devcontainer.json" -Recurse -File
-    if(-not $devContainerJson) { throw "No devcontainer.json files found in the workspace folder." }
+    if(-not $devContainerJson) { throw "No devcontainer.json files found." }
     switch ($devContainerJson.Count) {
-        0 { throw "No devcontainer.json files found in the workspace folder." }
+        0 { throw "No devcontainer.json files found." }
         1 { return $devContainerJson[0].FullName }
         default { throw "Multiple devcontainer.json files found. Please provide the DevContainerJsonPath parameter." }
     }
@@ -48,14 +48,11 @@ function Get-DevContainerName {
     # Read the devcontainer.json file
     $jsonContent = Get-DevContainerJson -devContainerJsonPath $devContainerJsonPath
 
-    # Get the container name from the json content
-    $containerName = $jsonContent.name
-
-    if (-not $containerName) {
-        throw "Could not find the name element in $devContainerJsonPath."
+    # Get the container name from the json content, return null if not found
+    if ($jsonContent.PSObject.Properties['name']) {
+        return $jsonContent.name
     }
-
-    return $containerName.Replace(" ", "")
+    return $null
 }
 
 function Get-DevContainerExtensions {
@@ -160,12 +157,17 @@ function New-WslConfigFile {
 function Get-WslInstanceName {
     param (
         [string]$wslInstanceName,
-        [string]$containerName
+        [string]$containerName,
+        [string]$workspaceFolder
     )
-    if (-not $wslInstanceName) {
-        return $containerName
+    if ($wslInstanceName) {
+        return $wslInstanceName
     }
-    return $wslInstanceName
+    if ($containerName) {
+        return $containerName.Replace(" ", "")
+    }
+    # If no explicit name is provided, use the workspace folder name
+    return (Split-Path -Leaf $workspaceFolder).Replace(" ", "")
 }
 
 function Get-WslInstanceFilePath {
@@ -396,13 +398,14 @@ function New-WslFromDevContainer {
 
     $DevContainerJsonPath = Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath
     $containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
-    $containerLabel = $containerName.ToLower()
-    $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName
+    $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName -workspaceFolder $WorkspaceFolder
+    $containerLabel = $WslInstanceName.ToLower()
+    
     Write-Verbose "FORCE3 = $Force"
     Test-WslInstanceName -wslInstanceName $WslInstanceName -force $Force
     
     $containerId = Invoke-ContainerBuild `
-        -containerName $containerName `
+        -containerName $WslInstanceName `
         -containerLabel $containerLabel `
         -workspaceFolder $WorkspaceFolder `
         -devContainerJsonPath $DevContainerJsonPath

@@ -38,6 +38,14 @@ BeforeAll {
 '@
     }
 
+    function Get-DevContainerJsonWithoutName {
+        return @'
+{
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu"
+}
+'@
+    }
+
     function New-DevContainerJsonFile {
         param(
             [string]$workspaceFolder,
@@ -276,6 +284,19 @@ Describe 'New-WslFromDevContainer' {
         # Assert
         Assert-WslInstance -wslInstanceName $wslInstanceName
         Remove-WslInstance -wslInstanceName $wslInstanceName
+    }
+
+    It 'Uses workspace folder name when devcontainer.json has no name property' -Tag 'NoName' {
+        # Arrange
+        New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonWithoutName) | Out-Null
+        $expectedWslName = (Split-Path -Leaf $testDataPath)
+        
+        # Act
+        { New-WslFromDevContainer -WorkspaceFolder $testDataPath } | Should -Not -Throw
+
+        # Assert
+        Assert-WslInstance -wslInstanceName $expectedWslName
+        Remove-WslInstance -wslInstanceName $expectedWslName
     }
 
     It 'Skips user name update' -Tag 'SkipUserNameChange' {
