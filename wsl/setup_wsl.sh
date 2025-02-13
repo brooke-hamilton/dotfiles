@@ -29,3 +29,6 @@ wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/package
 sudo dpkg -i packages-microsoft-prod.deb
 sudo apt-get update
 sudo apt-get install procmon libncurses6 -y
+
+# Install the az cli
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
