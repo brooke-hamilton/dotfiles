@@ -28,3 +28,9 @@ Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPRO
 . "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
 
 # Run git\configure_git.sh
+# Create symlink to gh config file in WSL instance
+# Write-Verbose -Message "Creating symlink in WSL instance $wslInstanceName to the gh cli config file..."
+# Remove the existing gh config file if it exists.
+# Invoke-Wsl $wslInstanceName "[ -d .config/gh ] && rm -r .config/gh" | Write-Verbose
+# Create a symlink to the Windows gh config file.
+# Invoke-Wsl $wslInstanceName "mkdir -p .config && ln -s /mnt/c/Users/$Env:USERNAME/.config/gh .config/gh" | Write-Verbose
