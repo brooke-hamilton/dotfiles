@@ -141,7 +141,7 @@ Describe 'New-WslFromDevContainer' {
         Get-ChildItem -Path $testDataPath -Recurse | Remove-Item -Recurse -Force
     }    
 
-    It 'Throws error if no .devcontainer file' {
+    It 'Throws error if no .devcontainer file' -Tag NoFile {
         # Arrange
         $expectedMessage = "No devcontainer.json files found."
 

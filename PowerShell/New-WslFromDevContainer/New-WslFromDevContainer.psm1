@@ -220,8 +220,17 @@ function Test-Command {
         [string]$commandName
     )
     try {
-        $commandRef = Get-Command -Name $commandName -ErrorAction Stop
-        Write-Verbose -Message "$commandName is installed: $($commandRef.Path)"
+        if ($IsWindows) {
+            $commandRef = Get-Command -Name $commandName -ErrorAction Stop
+            Write-Verbose -Message "$commandName is installed: $($commandRef.Path)"
+        } else {
+            # In WSL, use 'which' to check for commands
+            $result = bash -c "which $commandName 2>/dev/null"
+            if ($LASTEXITCODE -ne 0) {
+                throw "$commandName not found"
+            }
+            Write-Verbose -Message "$commandName is installed: $result"
+        }
     }
     catch {
         throw "$commandName is not installed. Please install it before running this script."
@@ -229,7 +238,11 @@ function Test-Command {
 }
 
 function Test-DockerDaemon {
-    $errorOutput = & cmd.exe /c "docker ps 2>&1"
+    if ($IsWindows) {
+        $errorOutput = & cmd.exe /c "docker ps 2>&1"
+    } else {
+        $errorOutput = bash -c "docker ps 2>&1"
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "Docker is not accessible. $errorOutput"
     }
@@ -314,12 +327,42 @@ function Set-WindowsGitConfig {
     )
 
     Write-Verbose -Message "Creating symlink in WSL instance $wslInstanceName to the Windows git config file..."
-
-    # Remove the existing .gitconfig file if it exists.
+    
+    # Remove the existing .gitconfig file if it exists
     Invoke-Wsl $wslInstanceName "[ -f .gitconfig ] && rm .gitconfig" | Write-Verbose
+    
+    # Create a symlink to the Windows git config file, handling the path correctly whether we're in Windows or WSL
+    $windowsUser = Get-WindowsUser
+    Invoke-Wsl $wslInstanceName "ln -s /mnt/c/Users/$windowsUser/.gitconfig ~/.gitconfig" | Write-Verbose
+}
 
-    # Create a symlink to the Windows git config file.
-    Invoke-Wsl $wslInstanceName "ln -s /mnt/c/Users/$Env:USERNAME/.gitconfig ~/.gitconfig" | Write-Verbose
+function Get-WindowsUser {
+    if ($IsWindows) {
+        return $Env:USERNAME
+    }
+
+    # Use cmd.exe when running from WSL
+    if (-not $script:windowsUser) {
+        $script:windowsUser = cmd.exe /c "echo %USERNAME%" | Out-String -NoNewline
+    }
+    $windowsUser = $script:windowsUser
+    return $windowsUser.Trim()
+}
+
+function Convert-ToWindowsPath {
+    param (
+        [string]$path
+    )
+    if ($IsWindows) {
+        return $path
+    }
+    # Convert WSL path to Windows path if needed
+    if ($path.StartsWith("/mnt/")) {
+        $driveLetter = $path[5]
+        $remainingPath = $path.Substring(7)
+        return "${driveLetter}:${remainingPath}"
+    }
+    return $path
 }
 
 <#
@@ -378,13 +421,13 @@ function New-WslFromDevContainer {
 
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrWhiteSpace()]
-        [string]$NewUserName = $Env:USERNAME,
+        [string]$NewUserName = (Get-WindowsUser),
     
         [switch]$SkipUserNameChange = $false,
 
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrWhiteSpace()]
-        [string]$WslInstancesFolder = (Join-Path -Path $Env:USERPROFILE -ChildPath "wsl"),
+        [string]$WslInstancesFolder = (Join-Path -Path ($IsWindows ? $Env:USERPROFILE : "/mnt/c/Users/$(Get-WindowsUser)") -ChildPath "wsl"),
 
         [Parameter(Mandatory = $false)]
         [switch]$Force
@@ -396,7 +439,10 @@ function New-WslFromDevContainer {
     Test-Command -commandName "wsl"
     Test-DockerDaemon
 
-    $DevContainerJsonPath = Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath
+    $DevContainerJsonPath = Convert-ToWindowsPath (Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath)
+    $WorkspaceFolder = Convert-ToWindowsPath -path $WorkspaceFolder
+    $WslInstancesFolder = Convert-ToWindowsPath -path $WslInstancesFolder
+
     $containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
     $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName -workspaceFolder $WorkspaceFolder
     $containerLabel = $WslInstanceName.ToLower()
