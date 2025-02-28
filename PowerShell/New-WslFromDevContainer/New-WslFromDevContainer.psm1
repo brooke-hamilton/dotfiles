@@ -23,8 +23,8 @@ function Find-DevContainerJsonFile {
         return $devContainerJsonPath
     }
 
-    [System.IO.FileInfo[]]$devContainerJson = Get-ChildItem -Path $workspaceFolder -Filter "devcontainer.json" -Recurse -File
-    if(-not $devContainerJson) { throw "No devcontainer.json files found." }
+    [System.IO.FileInfo[]]$devContainerJson = Get-ChildItem -Path $workspaceFolder -Filter "devcontainer.json" -Recurse -File -Force
+    if (-not $devContainerJson) { throw "No devcontainer.json files found." }
     switch ($devContainerJson.Count) {
         0 { throw "No devcontainer.json files found." }
         1 { return $devContainerJson[0].FullName }
@@ -175,10 +175,21 @@ function Get-WslInstanceFilePath {
         [string]$wslInstanceName,
         [string]$wslInstancesFolder
     )
-    if (-not (Test-Path -Path $wslInstancesFolder -PathType Container)) {
-        New-Item -Path $wslInstancesFolder -ItemType Directory | Out-Null
+    
+    # String instead of script block to force variable expansion.
+    $getWslInstanceFilePathScript = @"
+        if (-not (Test-Path -Path $wslInstancesFolder -PathType Container)) {
+            New-Item -Path $wslInstancesFolder -ItemType Directory | Out-Null
+        }
+        return Join-Path -Path $wslInstancesFolder -ChildPath $wslInstanceName
+"@
+
+    if ($IsWindows) {
+        return & $getWslInstanceFilePathScript
     }
-    return Join-Path -Path $wslInstancesFolder -ChildPath $wslInstanceName
+    else {
+        return pwsh.exe -Command $getWslInstanceFilePathScript
+    }
 }
 
 function Test-WslInstanceName {
@@ -192,10 +203,11 @@ function Test-WslInstanceName {
     $existingInstances | ForEach-Object { 
         $existingInstanceName = $_.Trim()
         if ($existingInstanceName -ieq $wslInstanceName) {
-            if($force) {
+            if ($force) {
                 Write-Verbose -Message "Removing existing WSL instance $wslInstanceName..."
                 wsl.exe --unregister $wslInstanceName | Write-Verbose
-            } else{
+            }
+            else {
                 throw "A WSL instance with the name $wslInstanceName already exists. Delete the instance or use the -Force parameter to overwrite it."
             }
         }
@@ -223,7 +235,8 @@ function Test-Command {
         if ($IsWindows) {
             $commandRef = Get-Command -Name $commandName -ErrorAction Stop
             Write-Verbose -Message "$commandName is installed: $($commandRef.Path)"
-        } else {
+        }
+        else {
             # In WSL, use 'which' to check for commands
             $result = bash -c "which $commandName 2>/dev/null"
             if ($LASTEXITCODE -ne 0) {
@@ -240,7 +253,8 @@ function Test-Command {
 function Test-DockerDaemon {
     if ($IsWindows) {
         $errorOutput = & cmd.exe /c "docker ps 2>&1"
-    } else {
+    }
+    else {
         $errorOutput = bash -c "docker ps 2>&1"
     }
     if ($LASTEXITCODE -ne 0) {
@@ -318,7 +332,7 @@ function Invoke-Wsl {
         [string]$command
     )
 
-    wsl.exe -d $wslInstanceName -- bash -c "$command"
+    wsl.exe --distribution $wslInstanceName --cd "~" -- bash -c "$command"
 }
 
 function Set-WindowsGitConfig {
@@ -342,27 +356,35 @@ function Get-WindowsUser {
     }
 
     # Use cmd.exe when running from WSL
-    if (-not $script:windowsUser) {
-        $script:windowsUser = cmd.exe /c "echo %USERNAME%" | Out-String -NoNewline
+    if (-not (Test-Path variable:\script:windowsUser)) {
+        $script:windowsUser = pwsh.exe -command { $Env:username }
     }
-    $windowsUser = $script:windowsUser
-    return $windowsUser.Trim()
+    
+    return $script:windowsUser.Trim()
 }
 
-function Convert-ToWindowsPath {
-    param (
-        [string]$path
-    )
+function Get-WindowsUserProfile {
     if ($IsWindows) {
-        return $path
+        return $Env:USERPROFILE
     }
-    # Convert WSL path to Windows path if needed
-    if ($path.StartsWith("/mnt/")) {
-        $driveLetter = $path[5]
-        $remainingPath = $path.Substring(7)
-        return "${driveLetter}:${remainingPath}"
+
+    # Use pwsh.exe when running from WSL and cache the result
+    if (-not (Test-Path variable:\script:windowsUserProfile)) {
+        $script:windowsUserProfile = pwsh.exe -command { $Env:USERPROFILE }
     }
-    return $path
+    
+    return $script:windowsUserProfile.Trim()
+}
+
+function Get-DefaultWslInstancesFolder {
+    $getDefaultWslInstancesFolder = { Join-Path -Path $Env:USERPROFILE -ChildPath "wsl" }
+    
+    if ($IsWindows) {
+        return & $getDefaultWslInstancesFolder
+    }
+    else {
+        return pwsh.exe -Command $getDefaultWslInstancesFolder
+    }
 }
 
 <#
@@ -391,7 +413,8 @@ If specified, the script will not change the user name in the WSL instance and w
 the dev container, which is typically 'vscode'.
 
 .PARAMETER WslInstancesFolder
-The path to the folder where the WSL instances are stored. Defaults to the user's profile folder.
+The path to the folder where the WSL instances are stored. Defaults to the user's Windows profile folder. 
+Must be a Windows path, even when running this script from WSL because WSL instances are stored in the Windows file system.
 
 .PARAMETER Force
 When set to true, automatically deletes an existing WSL instance with the same name if it exists.
@@ -427,8 +450,8 @@ function New-WslFromDevContainer {
 
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrWhiteSpace()]
-        [string]$WslInstancesFolder = (Join-Path -Path ($IsWindows ? $Env:USERPROFILE : "/mnt/c/Users/$(Get-WindowsUser)") -ChildPath "wsl"),
-
+        [string]$WslInstancesFolder = (Get-DefaultWslInstancesFolder),
+        
         [Parameter(Mandatory = $false)]
         [switch]$Force
     )
@@ -436,18 +459,15 @@ function New-WslFromDevContainer {
     Write-Verbose "FORCE0 = $Force"
     Test-Command -commandName "devcontainer"
     Test-Command -commandName "docker"
-    Test-Command -commandName "wsl"
+    Test-Command -commandName "wsl.exe"
     Test-DockerDaemon
 
-    $DevContainerJsonPath = Convert-ToWindowsPath (Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath)
-    $WorkspaceFolder = Convert-ToWindowsPath -path $WorkspaceFolder
-    $WslInstancesFolder = Convert-ToWindowsPath -path $WslInstancesFolder
-
+    $DevContainerJsonPath = Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath
     $containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
     $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName -workspaceFolder $WorkspaceFolder
     $containerLabel = $WslInstanceName.ToLower()
     
-    Write-Verbose "FORCE3 = $Force"
+    Write-Verbose "FORCE = $Force"
     Test-WslInstanceName -wslInstanceName $WslInstanceName -force $Force
     
     $containerId = Invoke-ContainerBuild `
@@ -482,7 +502,12 @@ function New-WslFromDevContainer {
 
 Export-ModuleMember -Function New-WslFromDevContainer
 Export-ModuleMember -Function Get-DevContainerName
+Export-ModuleMember -Function Get-DevContainerJson
 Export-ModuleMember -Function Get-DevContainerExtensions
 Export-ModuleMember -Function Get-ContainerEnv
 Export-ModuleMember -Function Invoke-ContainerBuild
 Export-ModuleMember -Function Set-WslEnv
+Export-ModuleMember -Function Get-WindowsUser
+Export-ModuleMember -Function Get-WindowsUserProfile
+Export-ModuleMember -Function Get-DefaultWslInstancesFolder
+Export-ModuleMember -Function Get-WslInstanceFilePath

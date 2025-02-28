@@ -53,20 +53,22 @@ BeforeAll {
             [string]$jsonContent
         )
     
-        #Create the .devcontainer folder if it does not exist
+        # Create the .devcontainer folder if it does not exist
         $devContainerFolder = Join-Path -Path $workspaceFolder -ChildPath '.devcontainer'
         if (-not (Test-Path $devContainerFolder)) {
-            New-Item -ItemType Directory -Path $devContainerFolder | Out-Null
+            New-Item -ItemType Directory -Path $devContainerFolder -Force | Out-Null
         }
     
-        #If the $subfolder parameter is provided and does not exist, create it
+        # If the $subfolder parameter is provided and does not exist, create it
         if ($subfolder) {
             $devContainerFolder = Join-Path -Path $devContainerFolder -ChildPath $subfolder
-            New-Item -ItemType Directory -Path $devContainerFolder | Out-Null
+            if (-not (Test-Path $devContainerFolder)) {
+                New-Item -ItemType Directory -Path $devContainerFolder -Force | Out-Null
+            }
         }
             
         $devContainerJsonPath = Join-Path -Path $devContainerFolder -ChildPath 'devcontainer.json'
-        $jsonContent | Set-Content -Path $devContainerJsonPath | Out-Null
+        $jsonContent | Set-Content -Path $devContainerJsonPath -Force | Out-Null
     
         return $devContainerJsonPath
     }
@@ -105,15 +107,15 @@ BeforeAll {
         )
 
         # The user exists as the default user created by the dev container (user 1000).
-        wsl.exe --distribution $wslInstanceName --user root -- bash -c 'id -nu 1000' `
+        wsl.exe --distribution $wslInstanceName --user root --cd "~" -- bash -c 'id -nu 1000' `
         | Should -Contain $userName
             
         # The wsl.conf file sets the user as the default user.
-        wsl.exe --distribution $wslInstanceName --user root -- bash -c 'cat /etc/wsl.conf' `
+        wsl.exe --distribution $wslInstanceName --user root --cd "~" -- bash -c 'cat /etc/wsl.conf' `
         | Should -Contain "default=$userName"
             
         # The user has sudo abilities.
-            (wsl.exe --distribution $wslInstanceName --user root -- bash -c "sudo --list --other-user=$userName")[0] `
+            (wsl.exe --distribution $wslInstanceName --user root --cd "~" -- bash -c "sudo --list --other-user=$userName")[0] `
         | Should -Match "^Matching Defaults entries for $userName"
     }
         
@@ -138,8 +140,52 @@ Describe 'New-WslFromDevContainer' {
     }
     
     AfterEach {
-        Get-ChildItem -Path $testDataPath -Recurse | Remove-Item -Recurse -Force
+        Get-ChildItem -Path $testDataPath -Recurse -Force | Remove-Item -Recurse -Force
     }    
+
+    It 'Get-WindowsUser returns a username' -Tag 'WindowsUser' {
+        # Act
+        $username = Get-WindowsUser
+        
+        # The output is cached in a script level variable.
+        $cachedUserName = Get-WindowsUser
+
+        # Assert
+        $username | Should -Not -BeNullOrEmpty
+        $userName | Should -Eq $cachedUserName
+    }
+
+    It 'Get-WindowsUserProfile returns the windows path to the user profile' -Tag 'WindowsUserProfile' {
+        # Act
+        $profilePath = Get-WindowsUserProfile
+
+        # Assert
+        $profilePath | Should -Not -BeNullOrEmpty
+
+        if ($IsWindows) {
+            Test-Path -Path $profilePath | Should -Be $true
+        }
+        else {
+            # If not on Windows, use the windows pwsh.exe to test the path on windows.
+            pwsh.exe -Command "Test-Path -Path $profilePath" | Should -Be $true
+        }
+    }
+
+    It 'Get-DefaultWslInstancesFolder returns user profile plus wsl' -Tag 'DefaultWslInstancesFolder' {
+        # Act
+        $wslInstancesFolder = Get-DefaultWslInstancesFolder
+
+        # Assert
+        $wslInstancesFolder | Should -Not -BeNullOrEmpty
+
+        if ($IsWindows) {
+            Test-Path -Path $wslInstancesFolder | Should -Be $true
+        }
+        else {
+            # If not on Windows, use the windows pwsh.exe to test the path on windows.
+            pwsh.exe -Command "Test-Path -Path $wslInstancesFolder" | Should -Be $true
+        }
+    }
 
     It 'Throws error if no .devcontainer file' -Tag NoFile {
         # Arrange
@@ -149,7 +195,7 @@ Describe 'New-WslFromDevContainer' {
         { New-WslFromDevContainer -WorkspaceFolder $testDataPath } | Should -Throw $expectedMessage
     }
 
-    It 'Throws error if multiple .devcontainer files and no json path parameter' {
+    It 'Throws error if multiple .devcontainer files and no json path parameter' -Tag MultipleDevContainerFiles {
         # Arrange
         $expectedMessage = "Multiple devcontainer.json files found. Please provide the DevContainerJsonPath parameter."
         New-DevContainerJsonFile -workspaceFolder $testDataPath -subfolder 'subfolder1' -jsonContent (Get-DevContainerJsonContent) | Should -Exist
@@ -230,7 +276,7 @@ Describe 'New-WslFromDevContainer' {
         docker rm $containerId --force --volumes
     }
 
-    It 'Creates WSL instance from workspace folder with one devcontainer.json' {
+    It 'Creates WSL instance from workspace folder with one devcontainer.json' -Tag CreateWslOneJson {
         # Arrange
         New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
         $wslInstanceName = 'test-container-wsl'
@@ -260,6 +306,16 @@ Describe 'New-WslFromDevContainer' {
         Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
+    It "Can get dev container json" -Tag DevContainerJson {
+        # Arrange
+        $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
+
+        $devContainerJsonContent = Get-DevContainerJson -DevContainerJsonPath $devContainerJsonPath
+
+        # Assert
+        $devContainerJsonContent | Should -Not -BeNullOrEmpty
+    }
+
     It 'Creates WSL instance with default name' -Tag 'DefaultCase' {
         # Arrange
         $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
@@ -273,7 +329,7 @@ Describe 'New-WslFromDevContainer' {
         Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
-    It 'Creates WSL instance with default name' -Tag 'DefaultCaseWithExtensions' {
+    It 'Creates WSL instance with default name with extensions' -Tag 'DefaultCaseWithExtensions' {
         # Arrange
         $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonWithExtensions)
         $wslInstanceName = (Get-Content -Path $devContainerJsonPath -Raw | ConvertFrom-Json).name
@@ -342,7 +398,7 @@ Describe 'New-WslFromDevContainer' {
         Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
-    It 'Does not throws error with two instances of the same name and Force parameter' -Tag 'TwoInstances' {
+    It 'Does not throw error with two instances of the same name and Force parameter' -Tag 'TwoInstancesNoError' {
         # Arrange
         $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonContent)
         $wslInstanceName = (Get-Content -Path $devContainerJsonPath -Raw | ConvertFrom-Json).name
