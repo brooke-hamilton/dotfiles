@@ -185,7 +185,7 @@ function Get-WslInstanceFilePath {
 "@
 
     if ($IsWindows) {
-        return & $getWslInstanceFilePathScript
+        return Invoke-Expression $getWslInstanceFilePathScript
     }
     else {
         return pwsh.exe -Command $getWslInstanceFilePathScript
