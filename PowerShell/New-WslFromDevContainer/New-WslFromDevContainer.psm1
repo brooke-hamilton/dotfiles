@@ -504,10 +504,3 @@ Export-ModuleMember -Function New-WslFromDevContainer
 Export-ModuleMember -Function Get-DevContainerName
 Export-ModuleMember -Function Get-DevContainerJson
 Export-ModuleMember -Function Get-DevContainerExtensions
-Export-ModuleMember -Function Get-ContainerEnv
-Export-ModuleMember -Function Invoke-ContainerBuild
-Export-ModuleMember -Function Set-WslEnv
-Export-ModuleMember -Function Get-WindowsUser
-Export-ModuleMember -Function Get-WindowsUserProfile
-Export-ModuleMember -Function Get-DefaultWslInstancesFolder
-Export-ModuleMember -Function Get-WslInstanceFilePath

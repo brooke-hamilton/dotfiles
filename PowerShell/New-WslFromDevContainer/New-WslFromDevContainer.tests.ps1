@@ -142,51 +142,54 @@ Describe 'New-WslFromDevContainer' {
     AfterEach {
         Get-ChildItem -Path $testDataPath -Recurse -Force | Remove-Item -Recurse -Force
     }    
-
-    It 'Get-WindowsUser returns a username' -Tag 'WindowsUser' {
-        # Act
-        $username = Get-WindowsUser
+    
+    InModuleScope 'New-WslFromDevContainer' {
         
-        # The output is cached in a script level variable.
-        $cachedUserName = Get-WindowsUser
+        It 'Get-WindowsUser returns a username' -Tag 'WindowsUser' {
+            # Act
+            $username = Get-WindowsUser
+                
+            # The output is cached in a script level variable.
+            $cachedUserName = Get-WindowsUser
 
-        # Assert
-        $username | Should -Not -BeNullOrEmpty
-        $userName | Should -Eq $cachedUserName
+            # Assert
+            $username | Should -Not -BeNullOrEmpty
+            $userName | Should -Eq $cachedUserName
+        }
+        
+        It 'Get-WindowsUserProfile returns the windows path to the user profile' -Tag 'WindowsUserProfile' {
+            # Act
+            $profilePath = Get-WindowsUserProfile
+
+            # Assert
+            $profilePath | Should -Not -BeNullOrEmpty
+
+            if ($IsWindows) {
+                Test-Path -Path $profilePath | Should -Be $true
+            }
+            else {
+                # If not on Windows, use the windows pwsh.exe to test the path on windows.
+                pwsh.exe -Command "Test-Path -Path $profilePath" | Should -Be $true
+            }
+        }
+        
+        It 'Get-DefaultWslInstancesFolder returns user profile plus wsl' -Tag 'DefaultWslInstancesFolder' {
+            # Act
+            $wslInstancesFolder = Get-DefaultWslInstancesFolder
+            
+            # Assert
+            $wslInstancesFolder | Should -Not -BeNullOrEmpty
+            
+            if ($IsWindows) {
+                Test-Path -Path $wslInstancesFolder | Should -Be $true
+            }
+            else {
+                # If not on Windows, use the windows pwsh.exe to test the path on windows.
+                pwsh.exe -Command "Test-Path -Path $wslInstancesFolder" | Should -Be $true
+            }
+        }
     }
-
-    It 'Get-WindowsUserProfile returns the windows path to the user profile' -Tag 'WindowsUserProfile' {
-        # Act
-        $profilePath = Get-WindowsUserProfile
-
-        # Assert
-        $profilePath | Should -Not -BeNullOrEmpty
-
-        if ($IsWindows) {
-            Test-Path -Path $profilePath | Should -Be $true
-        }
-        else {
-            # If not on Windows, use the windows pwsh.exe to test the path on windows.
-            pwsh.exe -Command "Test-Path -Path $profilePath" | Should -Be $true
-        }
-    }
-
-    It 'Get-DefaultWslInstancesFolder returns user profile plus wsl' -Tag 'DefaultWslInstancesFolder' {
-        # Act
-        $wslInstancesFolder = Get-DefaultWslInstancesFolder
-
-        # Assert
-        $wslInstancesFolder | Should -Not -BeNullOrEmpty
-
-        if ($IsWindows) {
-            Test-Path -Path $wslInstancesFolder | Should -Be $true
-        }
-        else {
-            # If not on Windows, use the windows pwsh.exe to test the path on windows.
-            pwsh.exe -Command "Test-Path -Path $wslInstancesFolder" | Should -Be $true
-        }
-    }
-
+        
     It 'Throws error if no .devcontainer file' -Tag NoFile {
         # Arrange
         $expectedMessage = "No devcontainer.json files found."
@@ -237,7 +240,7 @@ Describe 'New-WslFromDevContainer' {
     It 'Can get extensions' -Tag 'GetExtensions' {
         # Arrange
         $devContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonWithExtensions)
-
+        
         # Act
         $actualExtensions = Get-DevContainerExtensions -DevContainerJsonPath $devContainerJsonPath
 
@@ -256,25 +259,34 @@ Describe 'New-WslFromDevContainer' {
         $actualExtensions | Should -Be $null
     }
 
-    It 'Gets env section from docker inspect' -Tag 'GetEnvSection' {
+    It 'Gets env section from docker inspect' -Tag 'GetEnvSection' {    
         # Arrange
         $DevContainerJsonPath = New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonWithExtensions)
         $containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
         $containerLabel = $containerName.ToLower()
         $WorkspaceFolder = $testDataPath
-        $containerId = Invoke-ContainerBuild `
-            -containerName $containerName `
-            -containerLabel $containerLabel `
-            -workspaceFolder $WorkspaceFolder `
-            -devContainerJsonPath $DevContainerJsonPath
-
-        # Act
-        $containerEnv = Get-ContainerEnv -containerId $containerId
         
-        # Assert
-        $containerEnv | Should -Contain "GOPATH=/go"
-        docker rm $containerId --force --volumes
-    }
+        InModuleScope 'New-WslFromDevContainer' -Parameters @{ 
+            testDataPath         = $testDataPath;
+            containerName        = $containerName;
+            containerLabel       = $containerLabel;
+            WorkspaceFolder      = $WorkspaceFolder;
+            DevContainerJsonPath = $DevContainerJsonPath;
+        } {    
+            $containerId = Invoke-ContainerBuild `
+                -containerName $containerName `
+                -containerLabel $containerLabel `
+                -workspaceFolder $WorkspaceFolder `
+                -devContainerJsonPath $DevContainerJsonPath
+
+            # Act
+            $containerEnv = Get-ContainerEnv -containerId $containerId
+            
+            # Assert
+            $containerEnv | Should -Contain "GOPATH=/go"
+            docker rm $containerId --force --volumes
+        }
+    }    
 
     It 'Creates WSL instance from workspace folder with one devcontainer.json' -Tag CreateWslOneJson {
         # Arrange
