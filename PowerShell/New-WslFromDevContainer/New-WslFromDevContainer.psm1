@@ -355,7 +355,7 @@ function Get-WindowsUser {
         return $Env:USERNAME
     }
 
-    # Use cmd.exe when running from WSL
+    # Use pwsh.exe on Windows when running from WSL.
     if (-not (Test-Path variable:\script:windowsUser)) {
         $script:windowsUser = pwsh.exe -command { $Env:username }
     }
@@ -363,22 +363,12 @@ function Get-WindowsUser {
     return $script:windowsUser.Trim()
 }
 
-function Get-WindowsUserProfile {
-    if ($IsWindows) {
-        return $Env:USERPROFILE
-    }
-
-    # Use pwsh.exe when running from WSL and cache the result
-    if (-not (Test-Path variable:\script:windowsUserProfile)) {
-        $script:windowsUserProfile = pwsh.exe -command { $Env:USERPROFILE }
-    }
-    
-    return $script:windowsUserProfile.Trim()
-}
-
 function Get-DefaultWslInstancesFolder {
+
+    # Script block to run on Windows to get the Windows path.
     $getDefaultWslInstancesFolder = { Join-Path -Path $Env:USERPROFILE -ChildPath "wsl" }
     
+    # If this is not running on Windows, use pwsh.exe on Windows to run the script block.
     if ($IsWindows) {
         return & $getDefaultWslInstancesFolder
     }
@@ -394,7 +384,7 @@ Creates a WSL instance from a dev container specification (devcontainer.json fil
 .DESCRIPTION
 Automates the creation of a Windows Subsystem for Linux (WSL) instance using a development container specification.
 It builds the container image from the dev container specification, runs the container, and then exports the container 
-to a WSL instance. WSL, Docker Desktop, and the devcontainer CLI must be installed before running this script.
+to a WSL instance. WSL, Docker Desktop, the devcontainer CLI, and pwsh must be installed before running this script.
 This script can be run from Windows or WSL.
 
 .PARAMETER WorkspaceFolder
@@ -457,10 +447,11 @@ function New-WslFromDevContainer {
         [switch]$Force
     )
 
-    Write-Verbose "FORCE0 = $Force"
+    Write-Verbose "FORCE = $Force"
     Test-Command -commandName "devcontainer"
     Test-Command -commandName "docker"
     Test-Command -commandName "wsl.exe"
+    Test-Command -commandName "pwsh.exe"
     Test-DockerDaemon
 
     $DevContainerJsonPath = Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath
@@ -468,7 +459,6 @@ function New-WslFromDevContainer {
     $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName -workspaceFolder $WorkspaceFolder
     $containerLabel = $WslInstanceName.ToLower()
     
-    Write-Verbose "FORCE = $Force"
     Test-WslInstanceName -wslInstanceName $WslInstanceName -force $Force
     
     $containerId = Invoke-ContainerBuild `

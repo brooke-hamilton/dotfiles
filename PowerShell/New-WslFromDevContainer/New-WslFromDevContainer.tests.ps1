@@ -157,22 +157,6 @@ Describe 'New-WslFromDevContainer' {
             $userName | Should -Eq $cachedUserName
         }
         
-        It 'Get-WindowsUserProfile returns the windows path to the user profile' -Tag 'WindowsUserProfile' {
-            # Act
-            $profilePath = Get-WindowsUserProfile
-
-            # Assert
-            $profilePath | Should -Not -BeNullOrEmpty
-
-            if ($IsWindows) {
-                Test-Path -Path $profilePath | Should -Be $true
-            }
-            else {
-                # If not on Windows, use the windows pwsh.exe to test the path on windows.
-                pwsh.exe -Command "Test-Path -Path $profilePath" | Should -Be $true
-            }
-        }
-        
         It 'Get-DefaultWslInstancesFolder returns user profile plus wsl' -Tag 'DefaultWslInstancesFolder' {
             # Act
             $wslInstancesFolder = Get-DefaultWslInstancesFolder
