@@ -270,8 +270,14 @@ function Install-Extensions {
 
     if ($extensions) {
         Write-Verbose -Message "Installing extensions in WSL instance $WslInstanceName..."
-        $extensions | ForEach-Object {
-            Invoke-Wsl $wslInstanceName "code --install-extension $_" | Write-Verbose
+        Write-Progress $script:progressActivity -Status "Installing VS Code Server for Linux" -PercentComplete 85
+        Invoke-Wsl $wslInstanceName "code --version" | Write-Verbose
+        $extensionCount = $extensions.Count
+        for ($i = 0; $i -lt $extensionCount; $i++) {
+            $extension = $extensions[$i]
+            $percentComplete = (($i / $extensionCount) * 15) + 84
+            Write-Progress $script:progressActivity -Status "Installing VS Code extension $($extension)" -PercentComplete $percentComplete
+            Invoke-Wsl $wslInstanceName "code --install-extension $extension" | Write-Verbose
         }
     }
     else {
@@ -446,6 +452,9 @@ function New-WslFromDevContainer {
         [switch]$Force
     )
 
+    $script:progressActivity = "Installing WSL instance from Dev Container"
+
+    Write-Progress $script:progressActivity -Status "Validating Environment" -PercentComplete 1
     Write-Verbose "FORCE = $Force"
     Test-Command -commandName "devcontainer"
     Test-Command -commandName "docker"
@@ -453,13 +462,14 @@ function New-WslFromDevContainer {
     Test-Command -commandName "pwsh.exe"
     Test-DockerDaemon
 
+    Write-Progress $script:progressActivity -Status "Validating Environment" -PercentComplete 5
     $DevContainerJsonPath = Find-DevContainerJsonFile -workspaceFolder $WorkspaceFolder -devContainerJsonPath $DevContainerJsonPath
     $containerName = Get-DevContainerName -devContainerJsonPath $DevContainerJsonPath
     $WslInstanceName = Get-WslInstanceName -wslInstanceName $WslInstanceName -containerName $containerName -workspaceFolder $WorkspaceFolder
     $containerLabel = $WslInstanceName.ToLower()
-    
     Test-WslInstanceName -wslInstanceName $WslInstanceName -force $Force
-    
+
+    Write-Progress $script:progressActivity -Status "Building Dev Container" -PercentComplete 25
     $containerId = Invoke-ContainerBuild `
         -containerName $WslInstanceName `
         -containerLabel $containerLabel `
@@ -468,6 +478,7 @@ function New-WslFromDevContainer {
 
     $containerEnv = Get-ContainerEnv -containerId $containerId
     
+    Write-Progress $script:progressActivity -Status "Importing WSL instance from dev container image" -PercentComplete 50
     $wslInstancePath = Get-WslInstanceFilePath -wslInstanceName $WslInstanceName -wslInstancesFolder $WslInstancesFolder
     New-WslInstanceFromContainer -containerId $containerId -wslInstanceName $WslInstanceName -wslInstancePath $wslInstancePath
 
@@ -480,14 +491,16 @@ function New-WslFromDevContainer {
         $userName = $NewUserName
     }
 
+    Write-Progress $script:progressActivity -Status "Configuring WSL instance" -PercentComplete 75
     New-WslConfigFile -wslInstanceName $WslInstanceName -UserName $userName
-
     Set-WslEnv -containerEnv $containerEnv -wslInstanceName $WslInstanceName
-
     Set-WindowsGitConfig -wslInstanceName $WslInstanceName
 
+    Write-Progress $script:progressActivity -Status "Installing VS Code extensions" -PercentComplete 80
     $extensions = Get-DevContainerExtensions -devContainerJsonPath $DevContainerJsonPath
     Install-Extensions -wslInstanceName $WslInstanceName -extensions $extensions
+
+    Write-Progress $script:progressActivity -Status "Done" -PercentComplete 100 -Completed
 }
 
 Export-ModuleMember -Function New-WslFromDevContainer
