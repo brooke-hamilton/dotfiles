@@ -95,8 +95,7 @@ function Invoke-ContainerBuild {
     Write-Verbose -Message "Building the container image $containerName for $devContainerJsonPath..."
 
     # Build the dev container
-    devcontainer build --workspace-folder="$workspaceFolder" --config="$devContainerJsonPath" --image-name="$containerLabel" `
-    | Write-Verbose
+    & devcontainer build --workspace-folder="$workspaceFolder" --config="$devContainerJsonPath" --image-name="$containerLabel" 2>&1 | Write-Verbose
 
     # Run the dev container - the container will not run in wsl unless exported from a container instance instead of an image
     Write-Verbose -Message "Running the container image $containerLabel..."
