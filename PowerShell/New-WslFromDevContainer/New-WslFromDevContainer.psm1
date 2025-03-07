@@ -392,6 +392,11 @@ It builds the container image from the dev container specification, runs the con
 to a WSL instance. WSL, Docker Desktop, the devcontainer CLI, and pwsh must be installed before running this script.
 This script can be run from Windows or WSL.
 
+.NOTES
+- Some containers overwrite the PATH variable in /etc/profile, the WSL-injected PATH elements will be overwritten.
+- If the container sets up anything in the /etc/environment file, WSL ignores that file and uses /etc/profile instead.
+- If the container requires human interaction upon starting, the script will pause and wait for input.
+
 .PARAMETER WorkspaceFolder
 The path to the workspace folder containing the devcontainer.json file. Defaults to the current directory.
 
@@ -420,7 +425,7 @@ When set to true, automatically deletes an existing WSL instance with the same n
 New-WslFromDevContainer
 
 .EXAMPLE
-# Create a WSL instance with a specific name and force overwrite
+# Create a WSL instance with a specific name and force overwrite, which deletes any existing instance with the same name.
 New-WslFromDevContainer -WorkspaceFolder "./myproject" -WslInstanceName "mydev" -Force
 
 .NOTES
