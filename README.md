@@ -14,3 +14,11 @@ This setup is for Windows 11 + WSL as a dev environment for [Radius](https://git
 1. Reboot.
 1. Open Windows Terminal and launch the Ubuntu WSL distro. Complete the Ubuntu [OOBE](https://en.wikipedia.org/wiki/Out-of-box_experience) setup, i.e., log into Ubuntu and set your credentials.
 1. From the Ubuntu terminal, run `./install_wsl_ubuntu.sh`. (You can run it from its Windows location at `/mnt/c/users/<username>/dotfiles`.)
+
+## Notes
+
+When WSL hangs, and `wsl --shutdown` does not work, and the Windows Service does not respond to a restart command, run this command to kill the service.
+
+```PowerShell
+taskkill /f /im wslservice.exe
+```
