@@ -37,10 +37,10 @@ git config --global user.email "$gh_email"
 git config --global init.defaultBranch main
 git config --global submodule.recurse true
 git config --global core.editor "code --wait"
+git config --global push.autoSetupRemote true
 
 echo "Git has been configured with the following settings:"
 echo " - user.name: $(git config --global user.name)"
 echo " - user.email: $(git config --global user.email)"
 echo " - credential.helper: $(git config --global credential.helper)"
 echo " - credential.https://dev.azure.com.useHttpPath true"
-
