@@ -1,0 +1,17 @@
+workspaces:
+  default: dev
+  items:
+    dev:
+      connection:
+        context: kind-kind
+        kind: kubernetes
+        overrides:
+          ucp: http://localhost:9000
+      environment: /planes/radius/local/resourceGroups/default/providers/Applications.Core/environments/default
+      scope: /planes/radius/local/resourceGroups/default
+    default:
+      connection:
+        context: kind-kind
+        kind: kubernetes
+      environment: /planes/radius/local/resourceGroups/default/providers/Applications.Core/environments/default
+      scope: /planes/radius/local/resourceGroups/default
