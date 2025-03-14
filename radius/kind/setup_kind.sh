@@ -53,6 +53,5 @@ kubectl create namespace radius-testing
 echo "Remaining steps:"
 echo "1. Run 'make install' to build and install a local copy of the CLI."
 echo "2. Run 'rad init' to install Radius in the Kind cluster."
-echo "3. Modify cmd/ucpd/ucp-dev.yaml to set the manifestDirectory element to the full local path."
-echo "4. Run the 'Launch Control Plane (all)' task in the debug pane of VS Code."
+echo "3. Run the 'Launch Control Plane (all)' task in the debug pane of VS Code."
 echo "See https://github.com/radius-project/radius/blob/main/docs/contributing/contributing-code/contributing-code-control-plane/running-controlplane-locally.md for details on debugging Radius."
