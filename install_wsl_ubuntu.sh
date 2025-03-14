@@ -9,6 +9,8 @@ set -e
 # When WSL is enabled but not activated, and Docker Desktop is installed, Docker Desktop becomes the default WSL distro.
 # Change the default Ubuntu.
 wsl.exe --set-default Ubuntu
-./wsl/setup_wsl.sh
-./git/configure_git.sh
-./wsl/install_pwsh.sh
+
+SCRIPT_DIR="$(dirname "$0")"
+"${SCRIPT_DIR}/wsl/setup_wsl.sh"
+"${SCRIPT_DIR}/git/configure_git.sh"
+"${SCRIPT_DIR}/wsl/install_pwsh.sh"
