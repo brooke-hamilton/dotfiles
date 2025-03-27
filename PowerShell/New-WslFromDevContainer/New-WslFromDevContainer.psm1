@@ -314,6 +314,12 @@ function Set-WslEnv {
         if ($envVar.StartsWith("PATH=")) {
             $envVar = $envVar -replace "^PATH=", 'PATH=\$PATH:'
         }
+
+        # Hack because dev containers set the GOPATH to /go. On WSL, access to modify that path requires root permissions.
+        if ($envVar -eq "GOPATH=/go") {
+            # The dev container sets the GOPATH to /go, but WSL uses $HOME/go. Change it to $HOME/go.
+            $envVar = "GOPATH=$HOME/go"
+        }
         
         # Enclose the value in double quotes and add 'export'.
         $envVar = $envVar -replace '=(.*)', '="$1"'
