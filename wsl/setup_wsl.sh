@@ -3,7 +3,11 @@
 # Description: Installs and configures tools for WSL.
 # Usage: ./wsl-setup.sh
 
+set -e
+
 sudo apt-get update && sudo apt-get dist-upgrade -y
+
+sudo apt-get install build-essentials -y
 
 # install latest git
 sudo add-apt-repository ppa:git-core/ppa -y
