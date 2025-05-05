@@ -36,3 +36,11 @@ sudo mv ./kind /usr/local/bin/kind
 
 # Install k3d: https://k3d.io/stable/#installation
 curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+# Install ORAS: https://oras.land/docs/installation
+VERSION="1.2.3"
+curl -LO "https://github.com/oras-project/oras/releases/download/v${VERSION}/oras_${VERSION}_linux_amd64.tar.gz"
+mkdir -p oras-install/
+tar -zxf oras_${VERSION}_*.tar.gz -C oras-install/
+sudo mv oras-install/oras /usr/local/bin/
+rm -rf oras_${VERSION}_*.tar.gz oras-install/
