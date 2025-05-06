@@ -7,7 +7,7 @@ set -e
 
 sudo apt-get update && sudo apt-get dist-upgrade -y
 
-sudo apt-get install build-essentials -y
+sudo apt-get install build-essential -y
 
 # install latest git
 sudo add-apt-repository ppa:git-core/ppa -y

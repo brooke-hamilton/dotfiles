@@ -19,10 +19,12 @@ rm ${GO_FILE}
 echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee -a /etc/profile > /dev/null
 
 # shellcheck disable=SC2016
-echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.profile
+echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.bashrc
 
 # shellcheck disable=SC1091
 . /etc/profile
+# shellcheck disable=SC1090
+. ~/.bashrc
 
 # Tools
 go install gotest.tools/gotestsum@latest
