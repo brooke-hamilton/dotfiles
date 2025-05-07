@@ -25,6 +25,10 @@ npm install -g @devcontainers/cli
 # Copy .wslconfig to user profile
 Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"
 
+# Symbolic link to git config
+Remove-Item -Path "$env:USERPROFILE\.gitconfig" -ErrorAction Ignore
+New-Item -Path "$env:USERPROFILE\.gitconfig" -ItemType SymbolicLink -Target "$env:USERPROFILE\OneDrive - Microsoft\.gitconfig"
+
 . "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
 
 # Run git\configure_git.sh
