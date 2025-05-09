@@ -3,6 +3,7 @@
 # For syntax highlighting in VS Code, change the language mode to "ini" file.
 [wsl2]
 dnsTunneling=false
+# https://learn.microsoft.com/en-us/windows/wsl/networking#mirrored-mode-networking
 networkingMode=mirrored
 # memory=48GB
 # https://github.com/microsoft/WSL/issues/11980#issuecomment-2412350798
