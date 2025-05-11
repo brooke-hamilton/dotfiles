@@ -11,14 +11,14 @@ SCRIPT_DIR="$(dirname "$0")"
 
 if command -v apt >/dev/null 2>&1; then
     echo "Using apt (Debian/Ubuntu-based distros)"
-    "${SCRIPT_DIR}/wsl/setup_wsl_ubuntu.sh"
-    "${SCRIPT_DIR}/wsl/setup_az_ubuntu.sh"
+    "${SCRIPT_DIR}/wsl/setup_wsl_apt.sh"
+    "${SCRIPT_DIR}/wsl/setup_az_apt.sh"
     "${SCRIPT_DIR}/wsl/setup_kubernetes_tools.sh"
-    "${SCRIPT_DIR}/wsl/setup_pwsh.sh"
+    "${SCRIPT_DIR}/wsl/setup_pwsh_apt.sh"
     "${SCRIPT_DIR}/wsl/setup_node.sh"
 elif command -v dnf >/dev/null 2>&1; then
     echo "Using dnf (Fedora/RHEL-based distros)"
-    "${SCRIPT_DIR}/wsl/setup_wsl_fedora.sh"
+    "${SCRIPT_DIR}/wsl/setup_wsl_dnf.sh"
 else
     echo "Unsupported package manager."
     exit 1
