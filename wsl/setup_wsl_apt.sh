@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Description: Installs and configures tools for WSL.
-# Usage: ./wsl-setup.sh
-
 set -e
 
 sudo apt-get update && sudo apt-get dist-upgrade -y
@@ -24,6 +21,8 @@ sudo apt install git -y
     && sudo apt update \
     && sudo apt install gh -y
 
+GITHUB_TOKEN=$(gh.exe auth token)
+export GITHUB_TOKEN
 gh extension install github/gh-copilot
 gh alias set co copilot --clobber
 
