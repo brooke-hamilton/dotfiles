@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # This command executes upon wsl startup. It must be configured in the /etc/wsl.conf file on the distribution, like this:
 # 
@@ -10,6 +11,7 @@ WSL_EXE="/mnt/c/Windows/system32/wsl.exe"
 CMD_EXE="/mnt/c/Windows/system32/cmd.exe"
 
 # Provide the ability to source an .env file to override the default values and provide additional logic.
+# NOTE: This sourced file must have LF line endings, not CRLF, or the mount command will fail.
 if [ -f "$(dirname "$0")/wsl_startup.env" ]; then
     # shellcheck disable=SC1091
     . "$(dirname "$0")/wsl_startup.env"
@@ -24,7 +26,7 @@ if [ -z "$WSL_WORKSPACE_FILE" ]; then
 fi
 
 if [ ! -d /mnt/wsl/workspace ]; then
-    $WSL_EXE --mount --vhd "$WSL_WORKSPACE_FILE" --name workspace
+    $WSL_EXE --mount --name workspace --vhd "$WSL_WORKSPACE_FILE"
 fi
 
 if [ -d /mnt/wsl/workspace ] && [ ! -d /workspace ]; then

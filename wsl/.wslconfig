@@ -8,3 +8,5 @@ networkingMode=mirrored
 # memory=48GB
 # https://github.com/microsoft/WSL/issues/11980#issuecomment-2412350798
 # networkingMode=virtioProxy
+# Outputs dmesg console on WSL startup
+# debugConsole=true
