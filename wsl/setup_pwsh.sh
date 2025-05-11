@@ -25,7 +25,7 @@ sudo apt-get install -f
 rm powershell.deb
 
 # Create the PowerShell profile file and write the import command to it
-gh repo clone brooke-hamilton/dotfiles "${HOME}/dotfiles"
+git clone https://github.com/brooke-hamilton/dotfiles "${HOME}/dotfiles"
 mkdir -p ~/.config/powershell
 # shellcheck disable=SC2016
 echo '. ${HOME}/dotfiles/PowerShell/Microsoft.PowerShell_profile.ps1' > ~/.config/powershell/Microsoft.PowerShell_profile.ps1
