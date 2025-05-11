@@ -24,6 +24,9 @@ sudo apt install git -y
     && sudo apt update \
     && sudo apt install gh -y
 
+gh extension install github/gh-copilot
+gh alias set co copilot --clobber
+
 # WSL Utilities
 # https://wslutiliti.es/wslu/install.html#debian
 sudo apt install wslu -y
