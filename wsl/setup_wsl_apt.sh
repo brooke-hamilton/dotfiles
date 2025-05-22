@@ -30,6 +30,12 @@ gh alias set co copilot --clobber
 # https://wslutiliti.es/wslu/install.html#debian
 sudo apt install wslu -y
 
+# Pyspelling: https://facelessuser.github.io/pyspelling/
+sudo apt install pipx
+pipx ensurepath
+pipx install pyspelling
+sudo apt-get install aspell aspell-en
+
 # Procmon for Linux
 # https://github.com/microsoft/ProcMon-for-Linux/blob/2.0.0.0/INSTALL.md#ubuntu-2004-2204-2404
 # wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb" -O packages-microsoft-prod.deb
