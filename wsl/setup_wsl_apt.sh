@@ -31,10 +31,10 @@ gh alias set co copilot --clobber
 sudo apt install wslu -y
 
 # Pyspelling: https://facelessuser.github.io/pyspelling/
-sudo apt install pipx
+sudo apt install pipx -y
 pipx ensurepath
 pipx install pyspelling
-sudo apt-get install aspell aspell-en
+sudo apt-get install aspell aspell-en -y
 
 # Procmon for Linux
 # https://github.com/microsoft/ProcMon-for-Linux/blob/2.0.0.0/INSTALL.md#ubuntu-2004-2204-2404
