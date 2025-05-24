@@ -2,7 +2,6 @@
 
 set -e
 
-rad install kubernetes --set rp.publicEndpointOverride=localhost:8081
 rad group create default
 rad group switch default
 rad env create default --namespace default --group default

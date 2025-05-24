@@ -19,8 +19,9 @@ else
 fi
 
 # Create a new kind cluster using the config file
-echo "Creating kind cluster with configuration from $HOME/kind-config.yaml..."
-kind create cluster --config="$(dirname "$0")/kind-config.yaml"
+KIND_CONFIG="$(dirname "$0")/kind-config.yaml"
+echo "Creating kind cluster with configuration from $KIND_CONFIG..."
+kind create cluster --config="$KIND_CONFIG"
 
 # Verify the cluster was created
 echo "Verifying cluster creation..."
@@ -31,7 +32,4 @@ else
     exit 1
 fi
 
-# Call the setup_radius.sh script
-echo "Running Radius setup script..."
-$(dirname "$0")/setup_radius.sh
-echo "Radius setup completed."
+rad install kubernetes --set rp.publicEndpointOverride=localhost:8080
