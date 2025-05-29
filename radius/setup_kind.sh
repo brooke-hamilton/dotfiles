@@ -32,4 +32,6 @@ else
     exit 1
 fi
 
-rad install kubernetes --set rp.publicEndpointOverride=localhost:8080
+if command -v rad >/dev/null 2>&1; then
+    rad install kubernetes --set rp.publicEndpointOverride=localhost:8080
+fi
