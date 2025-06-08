@@ -1,14 +1,19 @@
 #!/bin/bash
 
-# This script tests listing resources for an environment, PR #9507
-# Prerequisites: 
-# - Kubernetes cluster with Radius installed
-# - No rad init
+set -ex
 
-set -e
+deploy() {
+    local groupName="${1}group"
+    local environmentName="${1}env"
+    rad group create "$groupName"
+    rad env create "$environmentName" --group "$groupName"
+    rad deploy app.bicep -g "$groupName" -e "$environmentName"
+}
 
-rad group create banana-group
-rad group switch banana-group
-rad deploy "$(dirname "$0")/bananaApp.bicep"
-rad resource list Applications.Core/containers
-rad resource list Applications.Core/containers --environment banana-env
+rad workspace create kubernetes k3d --context k3d-k3s-default --force
+
+deploy avocado
+deploy peach
+
+rad resource list Applications.Core/containers -a todoapp -g avocadogroup
+rad resource list Applications.Core/containers -a todoapp -g peachgroup
