@@ -54,3 +54,12 @@ properties:
         id: "icsharpcode.ILSpy"
         source: winget
         Ensure: Present
+    
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: DSC
+      directives:
+        allowPrerelease: true
+      settings:
+        id: "Microsoft.DSC"
+        source: winget
+        Ensure: Present
