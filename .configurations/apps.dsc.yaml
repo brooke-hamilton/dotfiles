@@ -1,65 +1,55 @@
-# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
-properties:
-  configurationVersion: 0.2.0
-  resources:
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: install-sysinternals
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.Sysinternals"
-        source: "winget"
-        Ensure: Present
+# yaml-language-server: $schema=https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/config/document.json
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/config/document.json
+metadata:
+  name: Application Installation Configuration
+  description: Install essential applications using WinGet
+  version: 1.0.0
+resources:
+  - name: install sysinternals
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "Microsoft.Sysinternals"
+      source: "winget"
+      ensure: Present
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: install-powertoys
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.PowerToys"
-        source: "winget"
-        Ensure: Present
+  - name: install powertoys
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "Microsoft.PowerToys"
+      source: "winget"
+      ensure: Present
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: windows-app
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.WindowsApp"
-        source: "winget"
-        Ensure: Present
+  - name: windows app
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "Microsoft.WindowsApp"
+      source: "winget"
+      ensure: Present
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Discord
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Discord.Discord"
-        source: winget
+  - name: Discord
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "Discord.Discord"
+      source: "winget"
+      ensure: Present
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: github-cli
-      directives:
-        allowPrerelease: true
-      settings:
-        id: GitHub.cli
-        source: winget
-        Ensure: Present
+  - name: github cli
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "GitHub.cli"
+      source: "winget"
+      ensure: Present
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: il-spy
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "icsharpcode.ILSpy"
-        source: winget
-        Ensure: Present
+  - name: il spy
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "icsharpcode.ILSpy"
+      source: "winget"
+      ensure: Present
     
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: DSC
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.DSC"
-        source: winget
-        Ensure: Present
+  - name: DSC
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "Microsoft.DSC"
+      source: "winget"
+      ensure: Present

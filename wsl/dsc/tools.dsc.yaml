@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/bundled/config/document.json
+
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/bundled/config/document.json
+
+resources:
+  # Install and configure k3d using external shell script
+  - name: Install and configure k3d
+    type: Microsoft.DSC/Command
+    properties:
+      executable: bash
+      arguments:
+        - -c
+        - ./install-k3d.sh
+      test:
+        executable: bash
+        arguments:
+          - -c
+          - command -v k3d >/dev/null 2>&1
+
+metadata:
+  name: k3d-tools-installation
+  description: DSC configuration for installing k3d and related tools on Linux
+  version: 1.0.0
+  author: DevOps Team
+  tags:
+    - k3d
+    - development-tools
+    - linux
