@@ -1,0 +1,118 @@
+# Lightweight test Dockerfile for Radius PR dev containers
+FROM mcr.microsoft.com/devcontainers/base:jammy
+
+# Build arguments for PR information
+ARG PR_NUMBER
+ARG PR_BRANCH
+ARG PR_SHA
+ARG PR_REPO_URL
+ARG PR_TITLE
+
+# Labels for the image
+LABEL org.opencontainers.image.title="Radius PR Dev Container (Test)"
+LABEL org.opencontainers.image.description="Test dev container for Radius PR #${PR_NUMBER}"
+LABEL radius.pr.number="${PR_NUMBER}"
+LABEL radius.pr.branch="${PR_BRANCH}"
+LABEL radius.pr.sha="${PR_SHA}"
+
+# Set environment variables
+ENV PR_NUMBER=${PR_NUMBER}
+ENV PR_BRANCH=${PR_BRANCH}
+ENV PR_SHA=${PR_SHA}
+ENV PR_REPO_URL=${PR_REPO_URL}
+ENV PR_TITLE=${PR_TITLE}
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y docker-ce-cli \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
+    && rm kubectl
+
+# Install k3d
+RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+# Install Radius CLI (latest release)
+RUN curl -fsSL https://raw.githubusercontent.com/radius-project/radius/main/deploy/install.sh | bash
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Clone the Radius repository and checkout the PR branch
+RUN git clone https://github.com/radius-project/radius.git radius \
+    && cd radius \
+    && git fetch origin pull/${PR_NUMBER}/head:pr-${PR_NUMBER} \
+    && git checkout pr-${PR_NUMBER}
+
+# Copy setup scripts from dotfiles
+COPY radius/setup_k3d_pr.sh /usr/local/bin/setup_k3d.sh
+COPY radius/setup_radius_debugging.sh /usr/local/bin/setup_radius_debugging.sh
+
+# Make scripts executable
+RUN chmod +x /usr/local/bin/setup_k3d.sh \
+    && chmod +x /usr/local/bin/setup_radius_debugging.sh
+
+# Create startup script
+RUN cat > /usr/local/bin/start-radius-dev.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Starting Radius PR Dev Container (Test)"
+echo "======================================"
+echo "PR #${PR_NUMBER}: ${PR_TITLE}"
+echo "Branch: ${PR_BRANCH}"
+echo "SHA: ${PR_SHA}"
+echo "======================================"
+
+# Check if Docker daemon is running (in privileged mode)
+if docker info > /dev/null 2>&1; then
+    echo "Docker daemon is available"
+    
+    # Setup k3d cluster
+    echo "Setting up k3d cluster..."
+    setup_k3d.sh
+    
+    echo "======================================"
+    echo "Radius dev environment is ready!"
+    echo "- k3d cluster: k3d-k3s-default"
+    echo "- Radius workspace: kubernetes/k3d"
+    echo "======================================"
+else
+    echo "Docker daemon not available - running in non-privileged mode"
+    echo "To enable k3d, run with: docker run --privileged ..."
+fi
+
+echo "To get started:"
+echo "  rad version"
+echo "  rad workspace list"
+echo "  kubectl get nodes"
+echo "  cd /workspace/radius"
+echo "======================================"
+
+# Keep container running
+tail -f /dev/null
+EOF
+
+RUN chmod +x /usr/local/bin/start-radius-dev.sh
+
+# Expose ports
+EXPOSE 8081
+
+# Set working directory to radius source
+WORKDIR /workspace/radius
+
+# Use the startup script as the default command
+CMD ["/usr/local/bin/start-radius-dev.sh"]

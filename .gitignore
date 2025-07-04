@@ -1,1 +1,5 @@
 *.env
+# Temporary files
+/tmp/
+*.tmp
+*.log

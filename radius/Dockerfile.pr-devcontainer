@@ -1,0 +1,148 @@
+# Dockerfile for building dev containers for Radius PRs
+# This creates a container with the PR branch and a running k3d cluster with Radius deployed
+
+FROM mcr.microsoft.com/devcontainers/base:jammy
+
+# Build arguments for PR information
+ARG PR_NUMBER
+ARG PR_BRANCH
+ARG PR_SHA
+ARG PR_REPO_URL
+ARG PR_TITLE
+
+# Labels for the image
+LABEL org.opencontainers.image.title="Radius PR Dev Container"
+LABEL org.opencontainers.image.description="Dev container for Radius PR #${PR_NUMBER} with k3d cluster"
+LABEL org.opencontainers.image.source="https://github.com/radius-project/radius"
+LABEL radius.pr.number="${PR_NUMBER}"
+LABEL radius.pr.branch="${PR_BRANCH}"
+LABEL radius.pr.sha="${PR_SHA}"
+
+# Set environment variables
+ENV PR_NUMBER=${PR_NUMBER}
+ENV PR_BRANCH=${PR_BRANCH}
+ENV PR_SHA=${PR_SHA}
+ENV PR_REPO_URL=${PR_REPO_URL}
+ENV PR_TITLE=${PR_TITLE}
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    build-essential \
+    software-properties-common \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
+    && rm kubectl
+
+# Install k3d
+RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+# Install Go (required for Radius)
+RUN wget -O go.tar.gz https://go.dev/dl/go1.21.5.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf go.tar.gz \
+    && rm go.tar.gz
+
+# Set Go environment variables
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV PATH="${GOPATH}/bin:${PATH}"
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Clone the Radius repository and checkout the PR branch
+RUN git clone https://github.com/radius-project/radius.git radius \
+    && cd radius \
+    && git fetch origin pull/${PR_NUMBER}/head:pr-${PR_NUMBER} \
+    && git checkout pr-${PR_NUMBER}
+
+# Copy setup scripts from dotfiles
+COPY radius/setup_k3d_pr.sh /usr/local/bin/setup_k3d.sh
+COPY radius/setup_radius_debugging.sh /usr/local/bin/setup_radius_debugging.sh
+COPY radius/install-radius.sh /usr/local/bin/install-radius.sh
+
+# Make scripts executable
+RUN chmod +x /usr/local/bin/setup_k3d.sh \
+    && chmod +x /usr/local/bin/setup_radius_debugging.sh \
+    && chmod +x /usr/local/bin/install-radius.sh
+
+# Build Radius from source
+WORKDIR /workspace/radius
+RUN make build
+
+# Install rad CLI
+RUN cp ./bin/linux_amd64/rad /usr/local/bin/rad \
+    && chmod +x /usr/local/bin/rad
+
+# Create startup script
+RUN cat > /usr/local/bin/start-radius-dev.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Starting Radius PR Dev Container"
+echo "================================="
+echo "PR #${PR_NUMBER}: ${PR_TITLE}"
+echo "Branch: ${PR_BRANCH}"
+echo "SHA: ${PR_SHA}"
+echo "================================="
+
+# Start Docker daemon
+service docker start
+
+# Wait for Docker to be ready
+echo "Waiting for Docker to be ready..."
+while ! docker info > /dev/null 2>&1; do
+    sleep 1
+done
+
+# Setup k3d cluster
+echo "Setting up k3d cluster..."
+setup_k3d.sh
+
+# Setup Radius debugging environment
+echo "Setting up Radius debugging environment..."
+setup_radius_debugging.sh
+
+echo "================================="
+echo "Radius dev environment is ready!"
+echo "- Radius UI: http://localhost:8081"
+echo "- k3d cluster: k3d-k3s-default"
+echo "- Radius workspace: kubernetes/k3d"
+echo "================================="
+echo "To get started:"
+echo "  rad version"
+echo "  rad workspace list"
+echo "  kubectl get nodes"
+echo "================================="
+
+# Keep container running
+tail -f /dev/null
+EOF
+
+RUN chmod +x /usr/local/bin/start-radius-dev.sh
+
+# Expose ports
+EXPOSE 8081
+
+# Set working directory back to radius source
+WORKDIR /workspace/radius
+
+# Use the startup script as the default command
+CMD ["/usr/local/bin/start-radius-dev.sh"]
