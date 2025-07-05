@@ -38,6 +38,10 @@ git config --global init.defaultBranch main
 git config --global submodule.recurse true
 git config --global core.editor "code --wait"
 git config --global push.autoSetupRemote true
+git config --global gpg.program $(which gpg.exe) # Use gpg from Windows
+git config --global user.signingkey $(gpg.exe --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2)
+git config --global commit.gpgsign true
+git config --global tag.gpgSign true
 
 echo "Git has been configured with the following settings:"
 echo " - user.name: $(git config --global user.name)"
