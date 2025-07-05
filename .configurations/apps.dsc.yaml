@@ -53,3 +53,10 @@ resources:
       id: "Microsoft.DSC"
       source: "winget"
       ensure: Present
+
+  - name: gpg
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "GnuPG.GnuPG"
+      source: "winget"
+      ensure: Present
