@@ -10,7 +10,8 @@ deploy() {
     rad deploy app.bicep -g "$groupName" -e "$environmentName"
 }
 
-rad workspace create kubernetes k3d --context k3d-k3s-default --force
+CURRENT_CONTEXT=$(kubectl config current-context)
+rad workspace create kubernetes k3d --context "$CURRENT_CONTEXT" --force
 
 deploy avocado
 deploy peach
