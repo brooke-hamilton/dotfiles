@@ -2,19 +2,16 @@
 
 set -ex
 
-deploy() {
-    local groupName="${1}group"
-    local environmentName="${1}env"
-    rad group create "$groupName"
-    rad env create "$environmentName" --group "$groupName"
-    rad deploy app.bicep -g "$groupName" -e "$environmentName"
-}
+# Create a group with one environment and one application
+rad group create group1
+rad env create env1 --group group1
+rad deploy app.bicep -g group1 -e env1 --parameters "appName=app1" --parameters containerName="container1"
 
-CURRENT_CONTEXT=$(kubectl config current-context)
-rad workspace create kubernetes k3d --context "$CURRENT_CONTEXT" --force
+# Create a second environment in the same group with a different application
+rad env create env2 --group group1
+rad deploy app.bicep -g group1 -e env2 --parameters "appName=app2" --parameters containerName="container2"
 
-deploy avocado
-deploy peach
-
-rad resource list Applications.Core/containers -a todoapp -g avocadogroup
-rad resource list Applications.Core/containers -a todoapp -g peachgroup
+# Create a second group with one environment and one application
+rad group create group2
+rad env create env3 --group group2
+rad deploy app.bicep -g group2 -e env3 --parameters "appName=app3" --parameters containerName="container3"
