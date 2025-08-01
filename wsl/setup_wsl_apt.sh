@@ -43,3 +43,6 @@ sudo apt-get install aspell aspell-en -y
 # sudo apt-get update
 # sudo apt-get install libncurses6 procmon -y
 # rm packages-microsoft-prod.deb
+
+# Postgres client
+sudo apt installp ostgresql-client -y
