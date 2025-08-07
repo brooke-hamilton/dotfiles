@@ -29,6 +29,9 @@ chmod 700 get_helm.sh
 ./get_helm.sh
 rm -f get_helm.sh
 
+# Install helm unit testing:
+helm plugin install https://github.com/helm-unittest/helm-unittest.git
+
 # Install Kind: https://kind.sigs.k8s.io/docs/user/quick-start/#installing-from-release-binaries
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
 chmod +x ./kind
