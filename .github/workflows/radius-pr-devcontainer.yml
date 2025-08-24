@@ -1,0 +1,150 @@
+name: Build Radius PR Dev Container
+
+on:
+  # Manual trigger to watch for new PRs
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to build dev container for'
+        required: true
+        type: string
+  # Scheduled to check for new PRs every 30 minutes
+  schedule:
+    - cron: '*/30 * * * *'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/radius-pr-devcontainer
+
+jobs:
+  check-new-prs:
+    runs-on: ubuntu-latest
+    outputs:
+      pr_numbers: ${{ steps.get-prs.outputs.pr_numbers }}
+    steps:
+      - name: Get new PRs from radius-project/radius
+        id: get-prs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: 'radius-project',
+              repo: 'radius',
+              state: 'open',
+              sort: 'created',
+              direction: 'desc',
+              per_page: 10
+            });
+            
+            // If manually triggered, use the specified PR
+            if (context.payload.inputs && context.payload.inputs.pr_number) {
+              const prNumber = context.payload.inputs.pr_number;
+              const pr = prs.find(p => p.number.toString() === prNumber);
+              if (pr) {
+                core.setOutput('pr_numbers', JSON.stringify([prNumber]));
+                return;
+              }
+            }
+            
+            // For scheduled runs, get PRs from the last 30 minutes
+            if (context.eventName === 'schedule') {
+              const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+              const newPRs = prs.filter(pr => new Date(pr.created_at) > thirtyMinutesAgo);
+              const prNumbers = newPRs.map(pr => pr.number.toString());
+              core.setOutput('pr_numbers', JSON.stringify(prNumbers));
+            }
+
+  build-devcontainer:
+    needs: check-new-prs
+    if: needs.check-new-prs.outputs.pr_numbers != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pr_number: ${{ fromJson(needs.check-new-prs.outputs.pr_numbers) }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout dotfiles repo
+        uses: actions/checkout@v4
+
+      - name: Get PR details
+        id: pr-details
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: 'radius-project',
+              repo: 'radius',
+              pull_number: ${{ matrix.pr_number }}
+            });
+            
+            core.setOutput('branch', pr.head.ref);
+            core.setOutput('sha', pr.head.sha);
+            core.setOutput('repo_url', pr.head.repo.clone_url);
+            core.setOutput('title', pr.title);
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=pr-${{ matrix.pr_number }}
+            type=raw,value=pr-${{ matrix.pr_number }}-${{ steps.pr-details.outputs.sha }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./radius/Dockerfile.pr-devcontainer
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PR_NUMBER=${{ matrix.pr_number }}
+            PR_BRANCH=${{ steps.pr-details.outputs.branch }}
+            PR_SHA=${{ steps.pr-details.outputs.sha }}
+            PR_REPO_URL=${{ steps.pr-details.outputs.repo_url }}
+            PR_TITLE=${{ steps.pr-details.outputs.title }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Comment on PR with container info
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = `🚀 **Dev Container Built Successfully!**
+            
+            Your PR dev container is now available:
+            \`\`\`bash
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ matrix.pr_number }}
+            docker run -it --privileged -p 8081:8081 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ matrix.pr_number }}
+            \`\`\`
+            
+            The container includes:
+            - Your PR branch (\`${{ steps.pr-details.outputs.branch }}\`)
+            - k3d cluster with Radius deployed
+            - Radius accessible at http://localhost:8081
+            
+            Built from commit: ${{ steps.pr-details.outputs.sha }}`;
+            
+            await github.rest.issues.createComment({
+              owner: 'radius-project',
+              repo: 'radius',
+              issue_number: ${{ matrix.pr_number }},
+              body: comment
+            });
