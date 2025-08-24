@@ -12,5 +12,6 @@ k3d cluster create \
 
 if command -v rad >/dev/null 2>&1; then
     rad install kubernetes \
-        --set rp.publicEndpointOverride=localhost:8081
+        --set rp.publicEndpointOverride=localhost:8081 \
+        --skip-contour-install
 fi

@@ -11,7 +11,7 @@ echo ""
 echo "Applications deployed successfully. Now deleting..."
 
 # Delete applications from each environment
-rad app delete todoapp -y
+rad app delete todoapp --yes
 
 # Delete environments
 rad env delete env1 --group group1 --yes
