@@ -28,4 +28,7 @@ add_to_bashrc "source $BASHPROMPT_PATH"
 # shellcheck disable=SC2016
 add_to_bashrc 'export GITHUB_TOKEN=$(gh.exe auth token)'
 
+# Enable opening URIs from WSL
+add_to_bashrc 'export BROWSER="explorer.exe"'
+
 echo ".bashrc update complete."
