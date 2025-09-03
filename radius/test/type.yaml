@@ -1,0 +1,15 @@
+namespace: Radius.Test
+types:
+  containers:
+    description: |
+      Test resource type for testing the consolidated registration logic.
+    apiVersions:
+      '2025-08-01-preview':
+        schema: 
+          type: object
+          properties:
+            environment:
+              type: string
+            application:
+              type: string
+          required: [environment, application]
