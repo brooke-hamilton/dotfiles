@@ -45,7 +45,7 @@ sudo apt-get install aspell aspell-en -y
 # rm packages-microsoft-prod.deb
 
 # Postgres client
-sudo apt installp ostgresql-client -y
+sudo apt install postgresql-client -y
 
 # Terraform
 wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
@@ -54,3 +54,6 @@ sudo apt update && sudo apt install terraform
 
 # Shellcheck
 sudo apt install shellcheck -y
+
+# zstd
+sudo apt install zstd -y

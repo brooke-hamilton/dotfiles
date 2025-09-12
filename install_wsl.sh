@@ -27,5 +27,6 @@ fi
 # Setup that does not depend on a specific package manager.
 "${SCRIPT_DIR}/wsl/setup_go.sh"
 "${SCRIPT_DIR}/wsl/setup_bashrc.sh"
+"${SCRIPT_DIR}/wsl/setup-edit.sh"
 
 echo 'Set up git configuration.'
