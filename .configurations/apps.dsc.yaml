@@ -60,3 +60,10 @@ resources:
       id: "GnuPG.GnuPG"
       source: "winget"
       ensure: Present
+
+  - name: Slack
+    type: Microsoft.WinGet.DSC/WinGetPackage
+    properties:
+      id: "Slack.SlacSlackTechnologies.Slack"
+      source: "winget"
+      ensure: Present
