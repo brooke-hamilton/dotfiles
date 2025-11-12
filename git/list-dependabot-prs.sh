@@ -10,18 +10,18 @@ ORG="radius-project"
 # Column width constants
 REPO_WIDTH=20
 TITLE_WIDTH=50
-TITLE_MAX_CHARS=$((TITLE_WIDTH - 4))  # Leave room for "... " (4 characters)
+TITLE_MAX_CHARS=$((TITLE_WIDTH - 4)) # Leave room for "... " (4 characters)
 
 echo "Fetching open Dependabot PRs for organization: $ORG"
 echo
 
 # Check if gh CLI is installed and authenticated
-if ! command -v gh &> /dev/null; then
+if ! command -v gh &>/dev/null; then
     echo "Error: GitHub CLI (gh) is not installed"
     exit 1
 fi
 
-if ! gh auth status &> /dev/null; then
+if ! gh auth status &>/dev/null; then
     echo "Error: Not authenticated with GitHub CLI. Run 'gh auth login' first."
     exit 1
 fi
@@ -37,7 +37,7 @@ repos=$(gh repo list "$ORG" --visibility=public --limit 1000 --json name --jq '.
 for repo in $repos; do
     # Get open PRs authored by dependabot
     prs=$(gh pr list --repo "$ORG/$repo" --author "app/dependabot" --state open --json title,url --jq '.[] | "\(.title)|\(.url)"')
-    
+
     # If there are PRs, format and output them immediately
     if [ -n "$prs" ]; then
         while IFS='|' read -r title url; do
@@ -48,7 +48,7 @@ for repo in $repos; do
                 truncated_title="$title"
             fi
             printf "%-${REPO_WIDTH}s %-${TITLE_WIDTH}s %s\n" "$repo" "$truncated_title" "$url"
-        done <<< "$prs"
+        done <<<"$prs"
     fi
 done
 

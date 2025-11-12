@@ -10,7 +10,7 @@ gh auth login --git-protocol https --hostname github.com --scopes user --web
 
 echo "Configuring git to use GitHub CLI as the credential helper."
 gh auth setup-git
-# As an alternative, uncomment the line below to use Windows credential manager with git. 
+# As an alternative, uncomment the line below to use Windows credential manager with git.
 # See https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-git
 # git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
 git config --global credential.https://dev.azure.com.useHttpPath true

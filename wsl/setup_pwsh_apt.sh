@@ -9,8 +9,8 @@ set -e
 sudo sudo apt-get update && sudo apt-get install -y wget jq
 
 # Get the download URL for the latest PowerShell deb package
-url=$(curl -s https://api.github.com/repos/PowerShell/PowerShell/releases/latest | \
-        jq -r '.assets[] | select(.name | endswith(".deb")) | .browser_download_url')
+url=$(curl -s https://api.github.com/repos/PowerShell/PowerShell/releases/latest |
+    jq -r '.assets[] | select(.name | endswith(".deb")) | .browser_download_url')
 
 # Download the PowerShell package file
 wget -O powershell.deb "$url"
@@ -28,4 +28,4 @@ rm powershell.deb
 git clone https://github.com/brooke-hamilton/dotfiles "${HOME}/dotfiles"
 mkdir -p ~/.config/powershell
 # shellcheck disable=SC2016
-echo '. ${HOME}/dotfiles/PowerShell/Microsoft.PowerShell_profile.ps1' > ~/.config/powershell/Microsoft.PowerShell_profile.ps1
+echo '. ${HOME}/dotfiles/PowerShell/Microsoft.PowerShell_profile.ps1' >~/.config/powershell/Microsoft.PowerShell_profile.ps1

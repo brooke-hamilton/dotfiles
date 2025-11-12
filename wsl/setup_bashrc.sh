@@ -6,7 +6,7 @@
 add_to_bashrc() {
     local line="$1"
     if ! grep -qF "$line" ~/.bashrc; then
-        echo "$line" >> ~/.bashrc
+        echo "$line" >>~/.bashrc
         echo "Added '$line' to ~/.bashrc"
     else
         echo "'$line' already exists in ~/.bashrc"

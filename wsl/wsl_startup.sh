@@ -2,11 +2,11 @@
 set -e
 
 # This command executes upon wsl startup. It must be configured in the /etc/wsl.conf file on the distribution, like this:
-# 
+#
 # [boot]
 # command="<path to script>/wsl_startup.sh"
 
-# Windows paths are not available in this script, so they are defined here. 
+# Windows paths are not available in this script, so they are defined here.
 WSL_EXE="/mnt/c/Windows/system32/wsl.exe"
 CMD_EXE="/mnt/c/Windows/system32/cmd.exe"
 

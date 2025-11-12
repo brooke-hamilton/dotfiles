@@ -45,7 +45,6 @@ rad install kubernetes \
 get_pod_images
 uninstall
 
-
 rad install kubernetes \
     --chart /workspace/radius-project/radius/deploy/Chart \
     --set de.image=localhost:5000/deployment-engine \

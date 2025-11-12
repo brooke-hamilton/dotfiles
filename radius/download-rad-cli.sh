@@ -2,7 +2,7 @@
 
 # ============================================================================
 # Download Radius CLI Binary
-# 
+#
 # This script downloads a specific version of the Radius CLI (rad) binary
 # from GitHub releases and makes it executable.
 # ============================================================================
@@ -17,7 +17,7 @@ readonly GITHUB_REPO="radius"
 RELEASE_VERSION_NUMBER=""
 OS="linux"
 ARCH="amd64"
-OUTPUT_PATH=""  # Will be set based on version
+OUTPUT_PATH="" # Will be set based on version
 
 # Functions
 usage() {
@@ -44,7 +44,7 @@ validate_requirements() {
     # Check for required commands
     local required_commands=("curl")
     for cmd in "${required_commands[@]}"; do
-        if ! command -v "$cmd" &> /dev/null; then
+        if ! command -v "$cmd" &>/dev/null; then
             echo "Error: Required command '$cmd' is not installed or not in PATH" >&2
             exit 1
         fi
@@ -80,11 +80,11 @@ download_rad_cli() {
     if [[ -z "$OUTPUT_PATH" ]]; then
         OUTPUT_PATH="./rad-${RELEASE_VERSION_NUMBER}"
     fi
-    
+
     local artifact_name="rad_${OS}_${ARCH}"
     local download_base="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download"
     local download_url="${download_base}/v${RELEASE_VERSION_NUMBER}/${artifact_name}"
-    
+
     echo "============================================================================"
     echo "Downloading Radius CLI"
     echo "============================================================================"
@@ -94,7 +94,7 @@ download_rad_cli() {
     echo "Download URL: ${download_url}"
     echo "Output path: ${OUTPUT_PATH}"
     echo ""
-    
+
     # Create output directory if it doesn't exist
     local output_dir
     output_dir=$(dirname "$OUTPUT_PATH")
@@ -102,7 +102,7 @@ download_rad_cli() {
         echo "Creating directory: $output_dir"
         mkdir -p "$output_dir"
     fi
-    
+
     # Download the binary
     echo "Downloading..."
     if ! curl -sSL "$download_url" -o "$OUTPUT_PATH"; then
@@ -110,10 +110,10 @@ download_rad_cli() {
         echo "Please check that the version exists and the URL is accessible" >&2
         exit 1
     fi
-    
+
     # Make it executable
     chmod +x "$OUTPUT_PATH"
-    
+
     echo "============================================================================"
     echo "Download completed successfully!"
     echo "============================================================================"
@@ -145,26 +145,26 @@ shift
 # Parse remaining options
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -o|--os)
-            OS="$2"
-            shift 2
-            ;;
-        -a|--arch)
-            ARCH="$2"
-            shift 2
-            ;;
-        -p|--path)
-            OUTPUT_PATH="$2"
-            shift 2
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            echo "Unknown option: $1" >&2
-            echo "Use --help for usage information" >&2
-            exit 1
-            ;;
+    -o | --os)
+        OS="$2"
+        shift 2
+        ;;
+    -a | --arch)
+        ARCH="$2"
+        shift 2
+        ;;
+    -p | --path)
+        OUTPUT_PATH="$2"
+        shift 2
+        ;;
+    -h | --help)
+        usage
+        ;;
+    *)
+        echo "Unknown option: $1" >&2
+        echo "Use --help for usage information" >&2
+        exit 1
+        ;;
     esac
 done
 

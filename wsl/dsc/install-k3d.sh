@@ -4,25 +4,25 @@ set -e
 # Function to test if k3d is properly installed and configured
 test_k3d_installation() {
     echo "Testing k3d installation..."
-    
+
     # Test if k3d command is available
-    if ! command -v k3d &> /dev/null; then
+    if ! command -v k3d &>/dev/null; then
         echo "Test failed: k3d command not found" >&2
         return 1
     fi
-    
+
     # Test if configuration directory exists
     if [ ! -d "$HOME/.config/k3d" ]; then
         echo "Test failed: k3d configuration directory not found" >&2
         return 1
     fi
-    
+
     # Test if bash completion is installed
     if [ ! -f "/etc/bash_completion.d/k3d" ]; then
         echo "Test failed: k3d bash completion not found" >&2
         return 1
     fi
-    
+
     echo "All tests passed: k3d is properly installed and configured"
     return 0
 }
@@ -36,19 +36,19 @@ fi
 echo "Installing k3d and dependencies..."
 
 # Install curl if not present
-if ! command -v curl &> /dev/null; then
+if ! command -v curl &>/dev/null; then
     echo "Installing curl..."
     sudo apt-get update
     sudo apt-get install -y curl
 fi
 
 # Install k3d if not present
-if ! command -v k3d &> /dev/null; then
+if ! command -v k3d &>/dev/null; then
     echo "Installing k3d..."
     curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
-    
+
     # Verify installation
-    if command -v k3d &> /dev/null; then
+    if command -v k3d &>/dev/null; then
         echo "k3d installed successfully"
         k3d version
     else
@@ -72,7 +72,7 @@ fi
 # Set up k3d bash completion
 if [ ! -f "/etc/bash_completion.d/k3d" ]; then
     echo "Setting up k3d bash completion..."
-    k3d completion bash | sudo tee /etc/bash_completion.d/k3d > /dev/null
+    k3d completion bash | sudo tee /etc/bash_completion.d/k3d >/dev/null
     echo "k3d bash completion installed"
 else
     echo "k3d bash completion already installed"

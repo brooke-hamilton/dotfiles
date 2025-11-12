@@ -15,13 +15,13 @@ export GH_TOKEN
 while true; do
     # Get a batch of workflow run IDs
     run_ids=$(gh run list --repo "$REPO" -L 30 --json databaseId --jq '.[].databaseId')
-    
+
     # Check if we got any results
     if [[ -z "$run_ids" ]]; then
         echo "No more workflow runs found. Exiting."
         break
     fi
-    
+
     # Process each ID in the current batch
     echo "$run_ids" | while read id; do
         echo "Deleting workflow run with ID: $id"
@@ -33,6 +33,6 @@ while true; do
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/$REPO/actions/runs/$id"
     done
-    
+
     echo "Batch completed. Checking for more workflow runs..."
 done

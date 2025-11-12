@@ -19,7 +19,7 @@ sudo mkdir -p "$INSTALL_DIR"
 curl -L "${URL}" | sudo tar -xzf - -C "$INSTALL_DIR"
 
 # Add DSC to PATH only if dsc command is not found
-if ! command -v dsc &> /dev/null; then
-    echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$HOME/.bashrc"
+if ! command -v dsc &>/dev/null; then
+    echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >>"$HOME/.bashrc"
     echo "DSC added to PATH. Please run 'source ~/.bashrc' or start a new terminal session."
 fi

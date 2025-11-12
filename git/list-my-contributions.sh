@@ -13,14 +13,14 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Check if gh CLI is installed
-if ! command -v gh &> /dev/null; then
+if ! command -v gh &>/dev/null; then
     echo "Error: GitHub CLI (gh) is not installed."
     echo "Please install it from: https://cli.github.com/"
     exit 1
 fi
 
 # Check if user is authenticated
-if ! gh auth status &> /dev/null; then
+if ! gh auth status &>/dev/null; then
     echo "Error: Not authenticated with GitHub CLI."
     echo "Please run: gh auth login"
     exit 1
@@ -51,7 +51,7 @@ gh search commits \
     --author-date=">=$START_DATE" \
     --limit 1000 \
     --json repository \
-    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >> "$TEMP_FILE" || true
+    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >>"$TEMP_FILE" || true
 
 echo -e "${YELLOW}Searching for repositories with issues created...${NC}"
 # Search for issues created by the user
@@ -60,7 +60,7 @@ gh search issues \
     --created=">=$START_DATE" \
     --limit 1000 \
     --json repository \
-    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >> "$TEMP_FILE" || true
+    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >>"$TEMP_FILE" || true
 
 echo -e "${YELLOW}Searching for repositories with issues commented on...${NC}"
 # Search for issues where user commented
@@ -69,7 +69,7 @@ gh search issues \
     --created=">=$START_DATE" \
     --limit 1000 \
     --json repository \
-    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >> "$TEMP_FILE" || true
+    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >>"$TEMP_FILE" || true
 
 echo -e "${YELLOW}Searching for repositories with pull requests...${NC}"
 # Search for PRs created by the user
@@ -78,7 +78,7 @@ gh search prs \
     --created=">=$START_DATE" \
     --limit 1000 \
     --json repository \
-    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >> "$TEMP_FILE" || true
+    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >>"$TEMP_FILE" || true
 
 echo -e "${YELLOW}Searching for repositories with PR reviews...${NC}"
 # Search for PRs reviewed by the user
@@ -87,7 +87,7 @@ gh search prs \
     --created=">=$START_DATE" \
     --limit 1000 \
     --json repository \
-    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >> "$TEMP_FILE" || true
+    --jq '.[] | .repository.nameWithOwner' 2>/dev/null | sort -u >>"$TEMP_FILE" || true
 
 # Get unique repositories and sort, filtering out empty lines
 REPOS=$(sort -u "$TEMP_FILE" | grep -v '^$')

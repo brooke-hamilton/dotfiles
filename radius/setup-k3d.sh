@@ -10,14 +10,14 @@ SKIP_INSTALL=false
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --skip-install)
-            SKIP_INSTALL=true
-            shift
-            ;;
-        *)
-            echo "Unknown option: $1"
-            exit 1
-            ;;
+    --skip-install)
+        SKIP_INSTALL=true
+        shift
+        ;;
+    *)
+        echo "Unknown option: $1"
+        exit 1
+        ;;
     esac
 done
 

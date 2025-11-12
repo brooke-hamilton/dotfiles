@@ -15,9 +15,9 @@ sudo tar -C /usr/local -xzf ${GO_FILE}
 rm ${GO_FILE}
 
 # shellcheck disable=SC2016
-echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee -a /etc/profile > /dev/null
+echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee -a /etc/profile >/dev/null
 # shellcheck disable=SC2016
-echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.bashrc
+echo 'export PATH=$PATH:$(go env GOPATH)/bin' >>~/.bashrc
 # shellcheck disable=SC1091
 . /etc/profile
 # shellcheck disable=SC1090
