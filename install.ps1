@@ -16,7 +16,7 @@ winget configure --enable
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\.configurations\office-apps.dsc.yaml"
 
 # Radius setup
-. "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\submodules\radius-dev-config\.configurations\radius.dsc.yaml"
+# . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\submodules\radius-dev-config\.configurations\radius.dsc.yaml"
 
 # Dev container CLI (refresh the path first because npm was installed above)
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
@@ -24,6 +24,9 @@ npm install -g @devcontainers/cli
 
 # Copy .wslconfig to user profile
 Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"
+
+# Copy cloud-init files to user profile
+. "$PSScriptRoot\PowerShell\Copy-CloudInitFiles.ps1"
 
 # Symbolic link to git config
 if (Test-Path -Path "$env:ONEDRIVE\.gitconfig") {

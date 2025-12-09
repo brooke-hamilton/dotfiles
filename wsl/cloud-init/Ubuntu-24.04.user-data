@@ -1,0 +1,253 @@
+#cloud-config
+# =============================================================================
+# Cloud-init configuration for Ubuntu 24.04 on WSL
+#
+# This file should be placed in %USERPROFILE%\.cloud-init\ on Windows before
+# running: wsl --install Ubuntu-24.04
+#
+# See: https://documentation.ubuntu.com/wsl/stable/howto/cloud-init/
+# =============================================================================
+
+locale: en_US.UTF-8
+
+users:
+  - name: __username__
+    groups: [adm, dialout, cdrom, floppy, sudo, audio, dip, video, plugdev, netdev]
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+
+write_files:
+  # Set default WSL user
+  - path: /etc/wsl.conf
+    append: true
+    content: |
+      [user]
+      default=__username__
+
+  # PowerShell profile that sources the dotfiles profile
+  - path: /home/__username__/.config/powershell/Microsoft.PowerShell_profile.ps1
+    owner: __username__:__username__
+    permissions: "0644"
+    defer: true
+    content: |
+      . ${HOME}/dotfiles/PowerShell/Microsoft.PowerShell_profile.ps1
+
+  # Bashrc additions - appended after user is created (defer: true)
+  - path: /home/__username__/.bashrc
+    append: true
+    defer: true
+    content: |
+
+      # Added by cloud-init
+      source ${HOME}/dotfiles/wsl/.bashprompt.sh
+      export GITHUB_TOKEN=$(gh.exe auth token)
+      export BROWSER="explorer.exe"
+      export PATH=$PATH:/usr/local/go/bin
+      export PATH=$PATH:$(go env GOPATH)/bin
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# APT sources configuration
+apt:
+  sources:
+    git-core-ppa:
+      source: ppa:git-core/ppa
+
+#     hashicorp:
+#       source: "deb [signed-by=$KEY_FILE] https://apt.releases.hashicorp.com $RELEASE main"
+#       keyid: 798AEC654E5C15428C8E42EEAA16FCBCA621E701
+#       keyserver: keyserver.ubuntu.com
+
+packages:
+  - git
+#   - build-essential
+#   - curl
+#   - wget
+#   - jq
+#   - pipx
+#   - aspell
+#   - aspell-en
+#   - postgresql-client
+#   - terraform
+#   - shellcheck
+#   - zstd
+# #  - azure-cli
+#   - apt-transport-https
+#   - ca-certificates
+#   - gnupg
+#   - lsb-release
+
+runcmd:
+  # ==========================================================================
+  # Clone dotfiles repository
+  # ==========================================================================
+  - |
+    sudo -u __username__ git clone https://github.com/brooke-hamilton/dotfiles /home/__username__/dotfiles
+    
+  - |
+    sudo -u __username__ /home/__username__/dotfiles/wsl/setup-github-cli.sh
+#   # ==========================================================================
+#   # GitHub CLI extensions and aliases (run as user with token from Windows)
+#   # ==========================================================================
+#   - |
+#     sudo -u __username__ bash -c 'export GITHUB_TOKEN=$(gh.exe auth token 2>/dev/null || true); if [ -n "$GITHUB_TOKEN" ]; then gh extension install github/gh-copilot || true; gh alias set co copilot --clobber || true; fi'
+
+#   # ==========================================================================
+#   # pipx packages
+#   # ==========================================================================
+#   - |
+#     sudo -u __username__ bash -c 'pipx ensurepath && pipx install pyspelling'
+
+#   # ==========================================================================
+#   # Install Go
+#   # ==========================================================================
+#   - |
+#     GO_VERSION="1.24.1"
+#     ARCH=$(uname -m)
+#     case "$ARCH" in
+#       x86_64|amd64) GO_ARCH="amd64" ;;
+#       aarch64|arm64) GO_ARCH="arm64" ;;
+#       *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+#     esac
+#     GO_FILE="go${GO_VERSION}.linux-${GO_ARCH}.tar.gz"
+#     wget -q "https://golang.org/dl/${GO_FILE}" -O /tmp/${GO_FILE}
+#     rm -rf /usr/local/go
+#     tar -C /usr/local -xzf /tmp/${GO_FILE}
+#     rm /tmp/${GO_FILE}
+#     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+
+#   # ==========================================================================
+#   # Install Go tools (as user)
+#   # ==========================================================================
+#   - |
+#     sudo -u __username__ bash -c '
+#       export PATH=$PATH:/usr/local/go/bin
+#       export GOPATH=/home/__username__/go
+#       mkdir -p $GOPATH
+#       /usr/local/go/bin/go install gotest.tools/gotestsum@latest
+#       /usr/local/go/bin/go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.0
+#       /usr/local/go/bin/go install go.uber.org/mock/mockgen@v0.4.0
+#       /usr/local/go/bin/go install github.com/stern/stern@latest
+#       curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $GOPATH/bin v1.64.6
+#     '
+
+#   # ==========================================================================
+#   # Install kubectl
+#   # ==========================================================================
+#   - |
+#     ARCH=$(uname -m)
+#     case "$ARCH" in
+#       x86_64|amd64) K8S_ARCH="amd64" ;;
+#       aarch64|arm64) K8S_ARCH="arm64" ;;
+#       *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+#     esac
+#     KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+#     curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${K8S_ARCH}/kubectl"
+#     curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${K8S_ARCH}/kubectl.sha256"
+#     echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+#     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+#     rm -f kubectl kubectl.sha256
+
+#   # ==========================================================================
+#   # Install Helm
+#   # ==========================================================================
+#   - |
+#     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+#   # ==========================================================================
+#   # Install Helm unittest plugin (as user)
+#   # ==========================================================================
+#   - |
+#     sudo -u __username__ helm plugin install https://github.com/helm-unittest/helm-unittest.git || true
+
+#   # ==========================================================================
+#   # Install Kind
+#   # ==========================================================================
+#   - |
+#     ARCH=$(uname -m)
+#     case "$ARCH" in
+#       x86_64|amd64) KIND_ARCH="amd64" ;;
+#       aarch64|arm64) KIND_ARCH="arm64" ;;
+#       *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+#     esac
+#     curl -Lo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-${KIND_ARCH}"
+#     chmod +x /usr/local/bin/kind
+
+#   # ==========================================================================
+#   # Install k3d
+#   # ==========================================================================
+#   - |
+#     curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+#   # ==========================================================================
+#   # Install ORAS
+#   # ==========================================================================
+#   - |
+#     ORAS_VERSION="1.2.3"
+#     ARCH=$(uname -m)
+#     case "$ARCH" in
+#       x86_64|amd64) ORAS_ARCH="amd64" ;;
+#       aarch64|arm64) ORAS_ARCH="arm64" ;;
+#       *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+#     esac
+#     curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_${ORAS_ARCH}.tar.gz"
+#     mkdir -p oras-install
+#     tar -zxf oras_${ORAS_VERSION}_linux_${ORAS_ARCH}.tar.gz -C oras-install
+#     mv oras-install/oras /usr/local/bin/
+#     rm -rf oras_${ORAS_VERSION}_linux_${ORAS_ARCH}.tar.gz oras-install
+
+#   # ==========================================================================
+#   # Install PowerShell
+#   # ==========================================================================
+#   - |
+#     ARCH=$(uname -m)
+#     case "$ARCH" in
+#       x86_64|amd64) PS_ARCH="x64" ;;
+#       aarch64|arm64) PS_ARCH="arm64" ;;
+#       *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+#     esac
+#     PS_URL=$(curl -s https://api.github.com/repos/PowerShell/PowerShell/releases/latest | jq -r ".assets[] | select(.name | contains(\"deb\") and contains(\"${PS_ARCH}\")) | .browser_download_url" | head -1)
+#     wget -O /tmp/powershell.deb "$PS_URL"
+#     dpkg -i /tmp/powershell.deb || apt-get install -f -y
+#     rm /tmp/powershell.deb
+
+#   # ==========================================================================
+#   # Install NVM and Node.js (as user)
+#   # ==========================================================================
+#   - |
+#     sudo -u __username__ bash -c '
+#       curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+#       export NVM_DIR="$HOME/.nvm"
+#       [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+#       nvm install 22
+#       npm install -g typescript autorest oav
+#     '
+
+#   # ==========================================================================
+#   # Install Microsoft Edit
+#   # ==========================================================================
+#   - |
+#     ARCH=$(uname -m)
+#     case "$ARCH" in
+#       x86_64|amd64) EDIT_ARCH="x86_64" ;;
+#       aarch64|arm64) EDIT_ARCH="aarch64" ;;
+#       *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+#     esac
+#     EDIT_VERSION=$(curl -s https://api.github.com/repos/microsoft/edit/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "v?([^"]+)".*/\1/')
+#     EDIT_FILE="edit-${EDIT_VERSION}-${EDIT_ARCH}-linux-gnu.tar.zst"
+#     curl -sSL "https://github.com/microsoft/edit/releases/download/v${EDIT_VERSION}/${EDIT_FILE}" -o /tmp/${EDIT_FILE}
+#     mkdir -p /tmp/edit-install
+#     tar --use-compress-program=zstd -xf /tmp/${EDIT_FILE} -C /tmp/edit-install
+#     find /tmp/edit-install -name "edit" -type f -executable -exec cp {} /usr/local/bin/edit \;
+#     chmod +x /usr/local/bin/edit
+#     rm -rf /tmp/${EDIT_FILE} /tmp/edit-install
+
+#   # ==========================================================================
+#   # Fix ownership of user directories
+#   # ==========================================================================
+#   - |
+#     chown -R __username__:__username__ /home/__username__/.config
+#     chown -R __username__:__username__ /home/__username__/.nvm || true
+#     chown -R __username__:__username__ /home/__username__/go || true
+#     chown -R __username__:__username__ /home/__username__/dotfiles || true
