@@ -26,10 +26,6 @@ export GITHUB_TOKEN
 gh extension install github/gh-copilot
 gh alias set co copilot --clobber
 
-# WSL Utilities
-# https://wslutiliti.es/wslu/install.html#debian
-sudo apt install wslu -y
-
 # Pyspelling: https://facelessuser.github.io/pyspelling/
 sudo apt install pipx -y
 pipx ensurepath

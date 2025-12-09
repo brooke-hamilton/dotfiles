@@ -1,4 +1,5 @@
 #cloud-config
+# yaml-language-server: $schema=https://raw.githubusercontent.com/canonical/cloud-init/main/cloudinit/config/schemas/schema-cloud-config-v1.json
 # =============================================================================
 # Cloud-init configuration for Ubuntu 24.04 on WSL
 #
@@ -23,6 +24,8 @@ write_files:
     content: |
       [user]
       default=__username__
+      [boot]
+      command="/mnt/c/users/__username__/dotfiles/wsl/wsl_startup.sh"
 
   # PowerShell profile that sources the dotfiles profile
   - path: /home/__username__/.config/powershell/Microsoft.PowerShell_profile.ps1
@@ -35,24 +38,27 @@ write_files:
   # Bashrc additions - appended after user is created (defer: true)
   - path: /home/__username__/.bashrc
     append: true
+    owner: brhamilt:brhamilt
     defer: true
     content: |
-
       # Added by cloud-init
       source ${HOME}/dotfiles/wsl/.bashprompt.sh
       export GITHUB_TOKEN=$(gh.exe auth token)
       export BROWSER="explorer.exe"
-      export PATH=$PATH:/usr/local/go/bin
-      export PATH=$PATH:$(go env GOPATH)/bin
       export NVM_DIR="$HOME/.nvm"
       [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
       [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
-# APT sources configuration
+# package_reboot_if_required: true
+# package_update: true
+# package_upgrade: true
+
 apt:
   sources:
     git-core-ppa:
       source: ppa:git-core/ppa
+    golang:
+      source: ppa:longsleep/golang-backports
 
 #     hashicorp:
 #       source: "deb [signed-by=$KEY_FILE] https://apt.releases.hashicorp.com $RELEASE main"
@@ -87,6 +93,13 @@ runcmd:
     
   - |
     sudo -u __username__ /home/__username__/dotfiles/wsl/setup-github-cli.sh
+
+  - |
+    sudo -u __username__ /home/__username__/dotfiles/wsl/setup_go.sh
+
+  # - |
+  #   sudo -u __username__ /home/__username__/dotfiles/wsl/setup_kubernetes_tools.sh
+
 #   # ==========================================================================
 #   # GitHub CLI extensions and aliases (run as user with token from Windows)
 #   # ==========================================================================
@@ -98,39 +111,6 @@ runcmd:
 #   # ==========================================================================
 #   - |
 #     sudo -u __username__ bash -c 'pipx ensurepath && pipx install pyspelling'
-
-#   # ==========================================================================
-#   # Install Go
-#   # ==========================================================================
-#   - |
-#     GO_VERSION="1.24.1"
-#     ARCH=$(uname -m)
-#     case "$ARCH" in
-#       x86_64|amd64) GO_ARCH="amd64" ;;
-#       aarch64|arm64) GO_ARCH="arm64" ;;
-#       *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
-#     esac
-#     GO_FILE="go${GO_VERSION}.linux-${GO_ARCH}.tar.gz"
-#     wget -q "https://golang.org/dl/${GO_FILE}" -O /tmp/${GO_FILE}
-#     rm -rf /usr/local/go
-#     tar -C /usr/local -xzf /tmp/${GO_FILE}
-#     rm /tmp/${GO_FILE}
-#     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
-
-#   # ==========================================================================
-#   # Install Go tools (as user)
-#   # ==========================================================================
-#   - |
-#     sudo -u __username__ bash -c '
-#       export PATH=$PATH:/usr/local/go/bin
-#       export GOPATH=/home/__username__/go
-#       mkdir -p $GOPATH
-#       /usr/local/go/bin/go install gotest.tools/gotestsum@latest
-#       /usr/local/go/bin/go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.0
-#       /usr/local/go/bin/go install go.uber.org/mock/mockgen@v0.4.0
-#       /usr/local/go/bin/go install github.com/stern/stern@latest
-#       curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $GOPATH/bin v1.64.6
-#     '
 
 #   # ==========================================================================
 #   # Install kubectl

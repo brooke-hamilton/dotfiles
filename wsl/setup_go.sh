@@ -3,7 +3,7 @@
 set -e
 
 # Script to set up Go environment modified from https://go.dev/doc/install
-GO_VERSION="1.24.1"
+GO_VERSION="1.25.0"
 GO_FILE="go${GO_VERSION}.linux-amd64.tar.gz"
 
 echo "Setting up Go version ${GO_VERSION}..."
@@ -19,9 +19,9 @@ echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee -a /etc/profile >/dev/null
 # shellcheck disable=SC2016
 echo 'export PATH=$PATH:$(go env GOPATH)/bin' >>~/.bashrc
 # shellcheck disable=SC1091
-. /etc/profile
+#. /etc/profile
 # shellcheck disable=SC1090
-. ~/.bashrc
+#. ~/.bashrc
 
 # Tools
 go install gotest.tools/gotestsum@latest
