@@ -49,16 +49,45 @@ write_files:
       [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
       [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
+  - path: /home/__username__/.hushlogin
+    owner: __username__:__username__
+    defer: true
+
+  - path: /etc/wsl-oobe.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/bin/bash
+      # This runs once on first interactive login
+      go install gotest.tools/gotestsum@latest
+      go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.0
+      go install go.uber.org/mock/mockgen@v0.4.0
+      go install github.com/stern/stern@latest
+
+      # golanci-lint: https://golangci-lint.run/welcome/install/#binaries
+      curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v1.64.6
+
+  # - path: /etc/apt/apt.conf.d/01proxy
+  #   permissions: '0644'
+  #   content: |
+  #     Acquire::http::Proxy "http://localhost:3142";
+  #     Acquire::https::Proxy "false";  # Optional: Don't proxy HTTPS
+
 # package_reboot_if_required: true
 # package_update: true
 # package_upgrade: true
 
 apt:
+  proxy: "http://localhost:3142"
   sources:
     git-core-ppa:
       source: ppa:git-core/ppa
     golang:
       source: ppa:longsleep/golang-backports
+    github-cli:
+      source: "deb [arch=$ARCH signed-by=$KEY_FILE] https://cli.github.com/packages stable main"
+      keyid: 23F3D4EA75716059
+      keyserver: keyserver.ubuntu.com
 
 #     hashicorp:
 #       source: "deb [signed-by=$KEY_FILE] https://apt.releases.hashicorp.com $RELEASE main"
@@ -67,6 +96,7 @@ apt:
 
 packages:
   - git
+  - gh
 #   - build-essential
 #   - curl
 #   - wget
@@ -92,11 +122,16 @@ runcmd:
     sudo -u __username__ git clone https://github.com/brooke-hamilton/dotfiles /home/__username__/dotfiles
     
   - |
-    sudo -u __username__ /home/__username__/dotfiles/wsl/setup-github-cli.sh
+    /home/__username__/dotfiles/wsl/setup_go.sh
 
   - |
-    sudo -u __username__ /home/__username__/dotfiles/wsl/setup_go.sh
+    go install gotest.tools/gotestsum@latest
+    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.0
+    go install go.uber.org/mock/mockgen@v0.4.0
+    go install github.com/stern/stern@latest
 
+    # golanci-lint: https://golangci-lint.run/welcome/install/#binaries
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v1.64.6
   # - |
   #   sudo -u __username__ /home/__username__/dotfiles/wsl/setup_kubernetes_tools.sh
 
