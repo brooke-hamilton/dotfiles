@@ -46,3 +46,4 @@ if (Test-Path -Path "$env:ONEDRIVE\.gitconfig") {
 # Invoke-Wsl $wslInstanceName "mkdir -p .config && ln -s /mnt/c/Users/$Env:USERNAME/.config/gh .config/gh" | Write-Verbose
 # Set wsl instances with integrated docker in this file: C:\Users\<username>\AppData\Roaming\Docker\settings-store.json
 # Turn of bel sound in wsl: in ~/.inputrc add this text: set bell-style none
+# Apt cache: docker run -d --name apt-cacher-ng -p 3142:3142 --restart unless-stopped sameersbn/apt-cacher-ng

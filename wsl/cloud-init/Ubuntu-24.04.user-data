@@ -44,6 +44,7 @@ write_files:
       # Added by cloud-init
       source ${HOME}/dotfiles/wsl/.bashprompt.sh
       export GITHUB_TOKEN=$(gh.exe auth token)
+      export PATH=$PATH:$(go env GOPATH)/bin
       export BROWSER="explorer.exe"
       export NVM_DIR="$HOME/.nvm"
       [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -52,26 +53,6 @@ write_files:
   - path: /home/__username__/.hushlogin
     owner: __username__:__username__
     defer: true
-
-  - path: /etc/wsl-oobe.sh
-    permissions: '0755'
-    owner: root:root
-    content: |
-      #!/bin/bash
-      # This runs once on first interactive login
-      go install gotest.tools/gotestsum@latest
-      go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.0
-      go install go.uber.org/mock/mockgen@v0.4.0
-      go install github.com/stern/stern@latest
-
-      # golanci-lint: https://golangci-lint.run/welcome/install/#binaries
-      curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v1.64.6
-
-  # - path: /etc/apt/apt.conf.d/01proxy
-  #   permissions: '0644'
-  #   content: |
-  #     Acquire::http::Proxy "http://localhost:3142";
-  #     Acquire::https::Proxy "false";  # Optional: Don't proxy HTTPS
 
 # package_reboot_if_required: true
 # package_update: true
@@ -118,22 +99,19 @@ runcmd:
   # ==========================================================================
   # Clone dotfiles repository
   # ==========================================================================
-  - |
-    sudo -u __username__ git clone https://github.com/brooke-hamilton/dotfiles /home/__username__/dotfiles
-    
-  - |
-    /home/__username__/dotfiles/wsl/setup_go.sh
+  - sudo -u __username__ git clone https://github.com/brooke-hamilton/dotfiles /home/__username__/dotfiles
+  - /home/__username__/dotfiles/wsl/setup_go.sh
+  - /home/__username__/dotfiles/wsl/setup_kubernetes_tools.sh
 
-  - |
-    go install gotest.tools/gotestsum@latest
-    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.0
-    go install go.uber.org/mock/mockgen@v0.4.0
-    go install github.com/stern/stern@latest
-
-    # golanci-lint: https://golangci-lint.run/welcome/install/#binaries
-    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v1.64.6
+  # # Commands that need to run as the user within a shell
   # - |
-  #   sudo -u __username__ /home/__username__/dotfiles/wsl/setup_kubernetes_tools.sh
+  #   su - __username__ -c '
+  #   go install gotest.tools/gotestsum@latest
+  #   go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.0
+  #   go install go.uber.org/mock/mockgen@v0.4.0
+  #   go install github.com/stern/stern@latest
+  #   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v1.64.6
+  #   '
 
 #   # ==========================================================================
 #   # GitHub CLI extensions and aliases (run as user with token from Windows)
