@@ -16,8 +16,8 @@ resources:
   - name: install powertoys
     type: Microsoft.WinGet/Package
     properties:
-      id: "Microsoft.PowerToys"
-      source: "winget"
+      id: "XP89DCGQ3K6VLD"
+      source: "msstore"
       acceptAgreements: true
       _exist: true
 
