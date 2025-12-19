@@ -1,0 +1,12 @@
+# powertoys-config.dsc.yaml
+$schema: https://aka.ms/dsc/schemas/v3/bundled/config/document.json
+resources:
+  - name: Configure Awake
+    type: Microsoft.PowerToys/AwakeSettings
+    properties:
+      settings:
+        properties:
+          keepDisplayOn: true
+          mode: 1
+        name: Awake
+        version: 0.0.1

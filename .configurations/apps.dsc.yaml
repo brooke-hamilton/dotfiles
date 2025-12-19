@@ -6,64 +6,81 @@ metadata:
   version: 1.0.0
 resources:
   - name: install sysinternals
-    type: Microsoft.WinGet.DSC/WinGetPackage
+    type: Microsoft.WinGet/Package
     properties:
-      id: "Microsoft.Sysinternals"
-      source: "winget"
-      ensure: Present
+      id: "9P7KNL5RWT25"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: true
 
   - name: install powertoys
-    type: Microsoft.WinGet.DSC/WinGetPackage
+    type: Microsoft.WinGet/Package
     properties:
       id: "Microsoft.PowerToys"
       source: "winget"
-      ensure: Present
+      acceptAgreements: true
+      _exist: true
 
   - name: windows app
-    type: Microsoft.WinGet.DSC/WinGetPackage
+    type: Microsoft.WinGet/Package
     properties:
       id: "Microsoft.WindowsApp"
       source: "winget"
-      ensure: Present
+      acceptAgreements: true
+      _exist: true
 
   - name: Discord
-    type: Microsoft.WinGet.DSC/WinGetPackage
+    type: Microsoft.WinGet/Package
     properties:
       id: "Discord.Discord"
       source: "winget"
-      ensure: Present
+      acceptAgreements: true
+      _exist: true
 
   - name: github cli
-    type: Microsoft.WinGet.DSC/WinGetPackage
+    type: Microsoft.WinGet/Package
     properties:
       id: "GitHub.cli"
       source: "winget"
-      ensure: Present
+      acceptAgreements: true
+      _exist: true
 
   - name: il spy
-    type: Microsoft.WinGet.DSC/WinGetPackage
+    type: Microsoft.WinGet/Package
     properties:
       id: "icsharpcode.ILSpy"
       source: "winget"
-      ensure: Present
+      acceptAgreements: true
+      _exist: true
     
-  - name: DSC
-    type: Microsoft.WinGet.DSC/WinGetPackage
-    properties:
-      id: "Microsoft.DSC"
-      source: "winget"
-      ensure: Present
-
   - name: gpg
-    type: Microsoft.WinGet.DSC/WinGetPackage
+    type: Microsoft.WinGet/Package
     properties:
       id: "GnuPG.GnuPG"
       source: "winget"
-      ensure: Present
+      acceptAgreements: true
+      _exist: true
 
   - name: Slack
-    type: Microsoft.WinGet.DSC/WinGetPackage
+    type: Microsoft.WinGet/Package
     properties:
-      id: "Slack.SlacSlackTechnologies.Slack"
+      id: "SlackTechnologies.Slack"
       source: "winget"
-      ensure: Present
+      acceptAgreements: true
+      _exist: true
+
+  - name: keepass
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "DominikReichl.KeePass"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true
+
+  - name: nodejs
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "OpenJS.NodeJS.LTS"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true

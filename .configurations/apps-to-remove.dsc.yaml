@@ -1,102 +1,70 @@
-# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
-properties:
-  configurationVersion: 0.2.0
-  resources:
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-your-phone
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.YourPhone_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
+# yaml-language-server: $schema=https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/config/document.json
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/config/document.json
+metadata:
+  name: Application Removal Configuration
+  description: Remove unwanted applications using WinGet
+  version: 1.0.0
+resources:
+  - name: remove your phone
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "MSIX\\Microsoft.YourPhone_0.25112.35.0_x64__8wekyb3d8bbwe"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: false
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-zune-music
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.ZuneMusic_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
+  - name: remove mail calendar
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "microsoft.windowscommunicationsapps_8wekyb3d8bbwe"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: false
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-zune-video
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.ZuneVideo_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
+  - name: remove clip champ
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "9P1J8S7CCWWT"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: false
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-mail-calendar
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "microsoft.windowscommunicationsapps_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
+  - name: remove windows tips
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "Microsoft.Getstarted_8wekyb3d8bbwe"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: false
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-xbox-app
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.GamingApp_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
+  - name: remove msft people
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "Microsoft.People_8wekyb3d8bbwe"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: false
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-clip-champ
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Clipchamp.Clipchamp_yxz26nhyzhsrt"
-        source: "msstore"
-        Ensure: Absent
+  - name: remove windows camera
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "9WZDNCRFJBBG"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: false
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-windows-tips
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.Getstarted_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
+  - name: remove windows maps
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "Microsoft.WindowsMaps_8wekyb3d8bbwe"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: false
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-msft-people
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.People_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-windows-camera
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.WindowsCamera_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-windows-maps
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.WindowsMaps_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: remove-bing-weather
-      directives:
-        allowPrerelease: true
-      settings:
-        id: "Microsoft.BingWeather_8wekyb3d8bbwe"
-        source: "msstore"
-        Ensure: Absent
+  - name: remove msn weather
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "9WZDNCRFJ3Q2"
+      source: "msstore"
+      acceptAgreements: true
+      _exist: false
