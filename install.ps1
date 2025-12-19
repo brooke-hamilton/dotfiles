@@ -24,7 +24,7 @@ Write-Banner "Applying personal preferences..."
 dsc config set --file "$PSScriptRoot\.configurations\desktop-settings.dsc.yaml"
 dsc config set --file "$PSScriptRoot\.configurations\apps-to-remove.dsc.yaml"
 dsc config set --file "$PSScriptRoot\.configurations\apps.dsc.yaml"
-. "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\.configurations\office-apps.dsc.yaml"
+dsc config set --file "$PSScriptRoot\.configurations\office-apps.dsc.yaml"
 
 Write-Banner "Installing Dev Container CLI..."
 Update-PathEnvVar
