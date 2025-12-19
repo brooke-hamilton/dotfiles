@@ -1,22 +1,46 @@
 #Requires -RunAsAdministrator
 
-# Enable winget configuration
-winget configure --enable
+# Update the PATH environment variable for the current session
+function Update-PathEnvVar {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+}
 
-# Personal preferences
+# Display a banner for a section of the script
+function Write-Banner {
+    param([string]$Message)
+    Write-Output "=========================================="
+    Write-Output $Message
+    Write-Output "=========================================="
+}
+
+Write-Banner "Configuring winget and installing DSC..."
+
+winget configure --enable
+winget install --id Microsoft.DSC --disable-interactivity --source winget
+Update-PathEnvVar
+
+Write-Banner "Applying personal preferences..."
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\.configurations\desktop-settings.dsc.yaml"
 dsc config set --file "$PSScriptRoot\.configurations\apps-to-remove.dsc.yaml"
 dsc config set --file "$PSScriptRoot\.configurations\apps.dsc.yaml"
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\.configurations\office-apps.dsc.yaml"
 
-# Radius setup
-# . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\submodules\radius-dev-config\.configurations\radius.dsc.yaml"
-
-# Dev container CLI (refresh the path first because npm was installed above)
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+Write-Banner "Installing Dev Container CLI..."
+Update-PathEnvVar
 npm install -g @devcontainers/cli
 
-# Copy .wslconfig to user profile
+Write-Banner "Cloning radius-dev-config repository..."
+$radiusDevConfigPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath "radius-dev-config"
+if (-not (Test-Path -Path $radiusDevConfigPath)) {
+    git clone https://github.com/brooke-hamilton/radius-dev-config $radiusDevConfigPath
+}
+
+Write-Banner "Starting Radius installation..."
+
+# Radius setup
+. "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\..\radius-dev-config\.configurations\radius.dsc.yaml"
+
+Write-Banner "Configuring user profile files..."
 Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"
 
 # Copy cloud-init files to user profile
