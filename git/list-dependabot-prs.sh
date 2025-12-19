@@ -1,11 +1,38 @@
 #!/bin/bash
 
-# Script to list all open Dependabot PRs in the radius-project organization
+# Script to list all open Dependabot PRs in a GitHub organization
 # Requires GitHub CLI (gh) to be installed and authenticated
 
-set -e
+set -euo pipefail
 
+# Default values
 ORG="radius-project"
+
+# Functions
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo "Options:"
+    echo "  -o, --org   GitHub organization (default: radius-project)"
+    echo "  -h, --help  Show this help"
+    exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -o|--org)
+            ORG="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 # Column width constants
 REPO_WIDTH=20
