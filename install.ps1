@@ -16,11 +16,12 @@ function Write-Banner {
 Write-Banner "Configuring winget and installing DSC..."
 
 winget configure --enable
+winget upgrade --all --force --nowarn --disable-interactivity --accept-package-agreements --accept-source-agreements
 winget install --id Microsoft.DSC --disable-interactivity --source winget
 Update-PathEnvVar
 
 Write-Banner "Applying personal preferences..."
-. "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\.configurations\desktop-settings.dsc.yaml"
+dsc config set --file "$PSScriptRoot\.configurations\desktop-settings.dsc.yaml"
 dsc config set --file "$PSScriptRoot\.configurations\apps-to-remove.dsc.yaml"
 dsc config set --file "$PSScriptRoot\.configurations\apps.dsc.yaml"
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\.configurations\office-apps.dsc.yaml"

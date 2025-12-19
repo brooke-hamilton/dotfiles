@@ -1,77 +1,63 @@
-# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
-properties:
-  configurationVersion: 0.2.0
-  resources:
-    - resource: PSDscResources/Registry
-      id: set-desktop-background-solid
-      directives:
-        description: Set desktop background to solid color
-        allowPrerelease: true
-      settings:
-        Key: 'HKEY_CURRENT_USER\Control Panel\Desktop'
-        valuename: WallPaper
-        valuedata: ""
-        valuetype: String
-        force: true
-        Ensure: Present
+# yaml-language-server: $schema=https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/config/document.json
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/config/document.json
+metadata:
+  name: Desktop Settings Configuration
+  description: Configure Windows desktop settings and preferences
+  version: 1.0.0
+resources:
+  - name: set desktop background solid
+    type: Microsoft.Windows/Registry
+    properties:
+      keyPath: HKCU\Control Panel\Desktop
+      valueName: WallPaper
+      valueData:
+        String: " "
 
-    - resource: PSDscResources/Script
-      id: refresh-desktop-background
-      directives:
-        allowPrerelease: true
-      settings:
-        SetScript: "RUNDLL32.EXE USER32.DLL,UpdatePerUserSystemParameters ,1 ,True"
-        TestScript: "$false"
-        GetScript: "$false"
+  - name: refresh desktop background
+    type: Microsoft.DSC.Transitional/RunCommandOnSet
+    properties:
+      executable: RUNDLL32.EXE
+      arguments:
+        - USER32.DLL,UpdatePerUserSystemParameters
+        - ",1"
+        - ",True"
 
-    - resource: Microsoft.Windows.Developer/WindowsExplorer
-      id: show-file-extensions
-      directives:
-        description: Show File Extensions
-        allowPrerelease: true
-      settings:
-        FileExtensions: Show
+  - name: show file extensions
+    type: Microsoft.Windows/Registry
+    properties:
+      keyPath: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+      valueName: HideFileExt
+      valueData:
+        DWord: 0
 
-    - resource: Microsoft.Windows.Developer/TaskBar
-      id: hide-search-box
-      directives:
-        description: Hide search box
-        allowPrerelease: true
-      settings:
-        SearchBoxMode: Hide
-        WidgetsButton: Hide
+  - name: hide search box
+    type: Microsoft.Windows/Registry
+    properties:
+      keyPath: HKCU\Software\Microsoft\Windows\CurrentVersion\Search
+      valueName: SearchboxTaskbarMode
+      valueData:
+        DWord: 0
 
-    - resource: Microsoft.Windows.Developer/EnableDarkMode
-      id: enable-dark-mode
-      directives:
-        description: Enable Dark Mode
-        allowPrerelease: true
-      settings:
-        Ensure: Present
-        RestartExplorer: true
+  - name: hide widgets button
+    type: Microsoft.Windows/Registry
+    properties:
+      keyPath: HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+      valueName: TaskbarDa
+      valueData:
+        DWord: 0
 
-    - resource: PSDscResources/Registry
-      id: set-windows-terminal-as-default-console-1
-      directives:
-        description: Set Windows Terminal as the default console part 1
-        allowPrerelease: true
-      settings:
-        Key: HKEY_CURRENT_USER\Console\%%Startup
-        ValueName: DelegationConsole
-        ValueData: "{2EACA947-7F5F-4CFA-BA87-8F7FBEEFBE69}"
-        ValueType: String
-        Force: true
-        Ensure: Present
+  - name: enable dark mode apps
+    type: Microsoft.Windows/Registry
+    properties:
+      keyPath: HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
+      valueName: AppsUseLightTheme
+      valueData:
+        DWord: 0
 
-    - resource: PSDscResources/Registry
-      id: set-windows-terminal-as-default-console-2
-      directives:
-        description: Set Windows Terminal as the default console part 2
-        allowPrerelease: true
-      settings:
-        Key: HKEY_CURRENT_USER\Console\%%Startup
-        valuename: DelegationTerminal
-        valuedata: "{E12CFF52-A866-4C77-9A90-F570A7AA2C6B}"
-        valuetype: String
-        force: true
-        Ensure: Present
+  - name: enable dark mode system
+    type: Microsoft.Windows/Registry
+    properties:
+      keyPath: HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
+      valueName: SystemUsesLightTheme
+      valueData:
+        DWord: 0
