@@ -14,7 +14,6 @@ function Write-Banner {
 }
 
 Write-Banner "Configuring winget and installing DSC..."
-
 winget configure --enable
 winget upgrade --all --force --nowarn --disable-interactivity --accept-package-agreements --accept-source-agreements
 winget install --id Microsoft.DSC --disable-interactivity --source winget
