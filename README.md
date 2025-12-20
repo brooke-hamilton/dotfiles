@@ -1,6 +1,6 @@
 # dotfiles
 
-This setup is for Windows 11 + WSL as a dev environment for [Radius](https://github.com/radius-project). The [radius-dev-config](https://github.com/brooke-hamilton/radius-dev-config) repo is included as a submodule and is part of the setup process.
+This setup is for Windows 11 + WSL as a dev environment for [Radius](https://github.com/radius-project).
 
 ## Prerequisites
 
