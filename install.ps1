@@ -56,6 +56,10 @@ if (Test-Path -Path "$env:ONEDRIVE\.gitconfig") {
     Write-Warning "OneDrive git config file not found. Skipping symbolic link creation."
 }
 
+# Set up OpenSSH Agent to start automatically
+Set-Service ssh-agent -StartupType Automatic
+Start-Service ssh-agent
+
 . "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
 
 # Create symlink to gh config file in WSL instance
