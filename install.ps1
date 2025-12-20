@@ -62,7 +62,6 @@ Start-Service ssh-agent
 
 . "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
 
-# Create symlink to gh config file in WSL instance
 # Remove the existing gh config file if it exists.
 # Invoke-Wsl $wslInstanceName "[ -d .config/gh ] && rm -r .config/gh" | Write-Verbose
 # Create a symlink to the Windows gh config file.
