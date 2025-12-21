@@ -35,7 +35,7 @@ if (-not (Test-Path -Path $radiusDevConfigPath)) {
     git clone https://github.com/brooke-hamilton/radius-dev-config $radiusDevConfigPath
 }
 
-Write-Banner "Starting Radius installation..."
+Write-Banner "Starting Radius dev environment..."
 
 # Radius setup
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\..\radius-dev-config\.configurations\radius.dsc.yaml"
