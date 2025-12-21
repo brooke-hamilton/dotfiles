@@ -43,17 +43,11 @@ Write-Banner "Starting Radius dev environment..."
 Write-Banner "Configuring user profile files..."
 Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"
 
-# Copy cloud-init files to user profile
+# Copy WSL cloud-init files to user profile
 . "$PSScriptRoot\PowerShell\Copy-CloudInitFiles.ps1"
 
-# Symbolic link to git config
-if (Test-Path -Path "$env:ONEDRIVE\.gitconfig") {
-    Write-Output "Creating symbolic link to git config file in OneDrive..."
-    Remove-Item -Path "$env:USERPROFILE\.gitconfig" -ErrorAction Ignore
-    New-Item -Path "$env:USERPROFILE\.gitconfig" -ItemType SymbolicLink -Target "$env:ONEDRIVE\.gitconfig"
-} else {
-    Write-Warning "OneDrive git config file not found. Skipping symbolic link creation."
-}
+# Configure Git and SSH
+. "$PSScriptRoot\PowerShell\Initialize-GitSshConfiguration.ps1"
 
 . "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
 
