@@ -18,9 +18,7 @@ The path to the yaml configuration file to apply.
 #>
 
 param(
-    [switch]$SkipConfiguration,
-    [string]$FileCachePath,
-    [string]$YamlConfigFilePath
+    [switch]$SkipConfiguration
 )
 
 #Requires -RunAsAdministrator
@@ -28,10 +26,11 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $progressPreference = 'silentlyContinue'
 
-.\Install-Winget.ps1 -FileCachePath $FileCachePath
+$VerbosePreference = 'Continue'
+.\Install-Winget.ps1
 
 if($SkipConfiguration) {
     Write-Host "Skipping configuration."
 } else {
-    ../Set-WinGetConfiguration.ps1 -YamlConfigFilePath $YamlConfigFilePath
+    ..\..\install.ps1
 }
