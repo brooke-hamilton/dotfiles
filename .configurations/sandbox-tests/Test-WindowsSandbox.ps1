@@ -42,47 +42,6 @@ function Stop-Wsb {
 
 <#
 .SYNOPSIS
-Copies the Microsoft.VCLibs.x64.14.00.Desktop.appx file from the Windows SDK to the sandbox resources folder.
-#>
-# function Copy-VCLibs {
-#     $vcLibsFileName = "Microsoft.VCLibs.x64.14.00.Desktop.appx"
-#     $vcLibsSourcePath = Join-Path -Path 'C:\Program Files (x86)\Microsoft SDKs\Windows Kits\10\ExtensionSDKs\Microsoft.VCLibs.Desktop\14.0\Appx\Retail\x64\' -ChildPath $vcLibsFileName
-#     $destinationFolder = Join-Path -Path $PSScriptRoot -ChildPath 'resources'
-#     $vcLibsDestinationPath = Join-Path -Path $destinationFolder -ChildPath $vcLibsFileName
-
-#     if (-not (Test-Path $destinationFolder)) {
-#         New-Item -Path $destinationFolder -ItemType Directory > $null
-#     }
-
-#     if(-not (Test-Path $vcLibsDestinationPath)) {
-        
-#         if (-not (Test-Path $vcLibsSourcePath)) {    
-#             throw "VCLibs file not found at expected path: $vcLibsSourcePath"
-#         }
-        
-#         Write-Host "Copying VCLibs file to sandbox resources folder..."
-#         Copy-Item -Path $vcLibsSourcePath -Destination $destinationFolder
-#     }
-
-#     $appInstallerName = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
-#     $appInstallerFilePath = Join-Path -Path $destinationFolder -ChildPath $appInstallerName
-
-#     $xamlFileName = "Microsoft.UI.Xaml.2.8.x64.appx"
-#     $xamlFilePath = Join-Path -Path $destinationFolder -ChildPath $xamlFileName
-
-#     if (-not (Test-Path $xamlFilePath)) {
-#         Write-Host "Downloading Xaml dependency package..."
-#         Invoke-WebRequest -Uri https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/$xamlFileName -OutFile $xamlFilePath
-#     }
-
-#     if (-not (Test-Path $appInstallerFilePath)) {
-#         Write-Host "Downloading WinGet package..."
-#         Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile $appInstallerFilePath
-#     }
-# }
-
-<#
-.SYNOPSIS
 Writes out a Windows Sandbox configuration file that maps the current folder into the sandbox and instructs the
 sandbox to execute the bootstrap script.
 #>
