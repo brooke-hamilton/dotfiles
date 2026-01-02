@@ -13,6 +13,16 @@ function Write-Banner {
     Write-Output "=========================================="
 }
 
+# Configure Git and SSH
+Write-Banner "Configuring git ssh..."
+. "$PSScriptRoot\PowerShell\Initialize-GitSshConfiguration.ps1"
+
+Write-Banner "Configuring user profile files..."
+Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"
+
+Write-Banner "Copying WSL cloud-init files to user profile..."
+. "$PSScriptRoot\PowerShell\Copy-CloudInitFiles.ps1"
+
 Write-Banner "Configuring winget, upgrading packages, and installing DSC..."
 winget configure --enable
 winget upgrade --all --force --nowarn --disable-interactivity --accept-package-agreements --accept-source-agreements
@@ -36,19 +46,9 @@ if (-not (Test-Path -Path $radiusDevConfigPath)) {
 }
 
 Write-Banner "Starting Radius dev environment..."
-
-# Radius setup
 . "$PSScriptRoot\.configurations\Set-WinGetConfiguration.ps1" -YamlConfigFilePath "$PSScriptRoot\..\radius-dev-config\.configurations\radius.dsc.yaml"
 
-Write-Banner "Configuring user profile files..."
-Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPROFILE\.wslconfig"
-
-# Copy WSL cloud-init files to user profile
-. "$PSScriptRoot\PowerShell\Copy-CloudInitFiles.ps1"
-
-# Configure Git and SSH
-. "$PSScriptRoot\PowerShell\Initialize-GitSshConfiguration.ps1"
-
+Write-Banner "Removing desktop shortcuts..."
 . "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
 
 # Remove the existing gh config file if it exists.
