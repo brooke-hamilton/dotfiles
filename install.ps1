@@ -23,9 +23,14 @@ Copy-Item -Force -Path "$PSScriptRoot\wsl\.wslconfig" -Destination "$env:USERPRO
 Write-Banner "Copying WSL cloud-init files to user profile..."
 . "$PSScriptRoot\PowerShell\Copy-CloudInitFiles.ps1"
 
-Write-Banner "Configuring winget, upgrading packages, and installing DSC..."
+Write-Banner "Configuring winget..."
 winget configure --enable
+Update-PathEnvVar
+
+Write-Banner "Upgrading packages..."
 winget upgrade --all --force --nowarn --disable-interactivity --accept-package-agreements --accept-source-agreements
+
+Write-Banner "Installing DSC..."
 winget install --id Microsoft.DSC --disable-interactivity --source winget
 Update-PathEnvVar
 
