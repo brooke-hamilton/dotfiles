@@ -22,6 +22,7 @@ echo 'export PATH=$PATH:/usr/local/go/bin' | tee -a /etc/profile >/dev/null
 # go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.0
 # go install go.uber.org/mock/mockgen@v0.4.0
 # go install github.com/stern/stern@latest
+go install github.com/suzuki-shunsuke/ghalint/cmd/ghalint@latest
 
 # # golanci-lint: https://golangci-lint.run/welcome/install/#binaries
 # curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v1.64.6
