@@ -17,7 +17,7 @@ Instructions for writing clean, consistent, and accessible Markdown documents ba
 - **MD021**: Use only one space inside hashes on closed atx-style headings
 - **MD022**: Surround headings with blank lines (one before and one after)
 - **MD023**: Headings must start at the beginning of the line without indentation
-- **MD024**: Avoid multiple headings with the same content in the same document
+- **MD024**: Avoid multiple headings with the same content (can be configured to only check sibling headings)
 - **MD025**: Use only one top-level heading (`# Title`) per document
 - **MD026**: Avoid trailing punctuation in headings (periods, colons, exclamation marks)
 - **MD036**: Use headings instead of emphasis (bold/italic) to denote document sections
