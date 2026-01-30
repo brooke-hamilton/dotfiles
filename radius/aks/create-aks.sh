@@ -58,8 +58,13 @@ echo "OIDC Issuer URL: ${SERVICE_ACCOUNT_ISSUER}"
 
 # Create the Entra ID Application
 export APPLICATION_NAME="${K8S_CLUSTER_NAME}-radius-app"
-echo "Creating Entra ID application '${APPLICATION_NAME}'..."
-az ad app create --display-name "${APPLICATION_NAME}" --service-management-reference 7505bbbe-ccd0-4e63-8497-0e172a7725f3
+echo "Checking if Entra ID application '${APPLICATION_NAME}' exists..."
+if ! az ad app list --display-name "${APPLICATION_NAME}" --query "[].appId" -o tsv | grep -q .; then
+    echo "Creating Entra ID application '${APPLICATION_NAME}'..."
+    az ad app create --display-name "${APPLICATION_NAME}" --service-management-reference 7505bbbe-ccd0-4e63-8497-0e172a7725f3
+else
+    echo "Entra ID application '${APPLICATION_NAME}' already exists. Skipping creation."
+fi
 
 # Get the client ID and object ID of the application
 echo "Retrieving application client ID and object ID..."
@@ -71,68 +76,58 @@ export APPLICATION_OBJECT_ID
 
 # Create the applications-rp federated credential for the application
 echo "Creating federated credential for applications-rp..."
-cat <<EOF > params-applications-rp.json
-{
-  "name": "radius-applications-rp",
-  "issuer": "${SERVICE_ACCOUNT_ISSUER}",
-  "subject": "system:serviceaccount:radius-system:applications-rp",
-  "description": "Kubernetes service account federated credential for applications-rp",
-  "audiences": [
-    "api://AzureADTokenExchange"
-  ]
-}
-EOF
-az ad app federated-credential create --id "${APPLICATION_OBJECT_ID}" --parameters @params-applications-rp.json
+az ad app federated-credential create --id "${APPLICATION_OBJECT_ID}" --parameters "{
+  \"name\": \"radius-applications-rp\",
+  \"issuer\": \"${SERVICE_ACCOUNT_ISSUER}\",
+  \"subject\": \"system:serviceaccount:radius-system:applications-rp\",
+  \"description\": \"Kubernetes service account federated credential for applications-rp\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}" || echo "Federated credential 'radius-applications-rp' may already exist, continuing..."
 
 # Create the bicep-de federated credential for the application
 echo "Creating federated credential for bicep-de..."
-cat <<EOF > params-bicep-de.json
-{
-  "name": "radius-bicep-de",
-  "issuer": "${SERVICE_ACCOUNT_ISSUER}",
-  "subject": "system:serviceaccount:radius-system:bicep-de",
-  "description": "Kubernetes service account federated credential for bicep-de",
-  "audiences": [
-    "api://AzureADTokenExchange"
-  ]
-}
-EOF
-az ad app federated-credential create --id "${APPLICATION_OBJECT_ID}" --parameters @params-bicep-de.json
+az ad app federated-credential create --id "${APPLICATION_OBJECT_ID}" --parameters "{
+  \"name\": \"radius-bicep-de\",
+  \"issuer\": \"${SERVICE_ACCOUNT_ISSUER}\",
+  \"subject\": \"system:serviceaccount:radius-system:bicep-de\",
+  \"description\": \"Kubernetes service account federated credential for bicep-de\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}" || echo "Federated credential 'radius-bicep-de' may already exist, continuing..."
 
 # Create the ucp federated credential for the application
 echo "Creating federated credential for ucp..."
-cat <<EOF > params-ucp.json
-{
-  "name": "radius-ucp",
-  "issuer": "${SERVICE_ACCOUNT_ISSUER}",
-  "subject": "system:serviceaccount:radius-system:ucp",
-  "description": "Kubernetes service account federated credential for ucp",
-  "audiences": [
-    "api://AzureADTokenExchange"
-  ]
-}
-EOF
-az ad app federated-credential create --id "${APPLICATION_OBJECT_ID}" --parameters @params-ucp.json
+az ad app federated-credential create --id "${APPLICATION_OBJECT_ID}" --parameters "{
+  \"name\": \"radius-ucp\",
+  \"issuer\": \"${SERVICE_ACCOUNT_ISSUER}\",
+  \"subject\": \"system:serviceaccount:radius-system:ucp\",
+  \"description\": \"Kubernetes service account federated credential for ucp\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}" || echo "Federated credential 'radius-ucp' may already exist, continuing..."
 
 # Create the dynamic-rp federated credential for the application
 echo "Creating federated credential for dynamic-rp..."
-cat <<EOF > params-dynamic-rp.json
-{
-  "name": "radius-dynamic-rp",
-  "issuer": "${SERVICE_ACCOUNT_ISSUER}",
-  "subject": "system:serviceaccount:radius-system:dynamic-rp",
-  "description": "Kubernetes service account federated credential for dynamic-rp",
-  "audiences": [
-    "api://AzureADTokenExchange"
-  ]
-}
-EOF
-az ad app federated-credential create --id "${APPLICATION_OBJECT_ID}" --parameters @params-dynamic-rp.json
+az ad app federated-credential create --id "${APPLICATION_OBJECT_ID}" --parameters "{
+  \"name\": \"radius-dynamic-rp\",
+  \"issuer\": \"${SERVICE_ACCOUNT_ISSUER}\",
+  \"subject\": \"system:serviceaccount:radius-system:dynamic-rp\",
+  \"description\": \"Kubernetes service account federated credential for dynamic-rp\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}" || echo "Federated credential 'radius-dynamic-rp' may already exist, continuing..."
 
 # Set the permissions for the application
-echo "Creating service principal for application..."
-az ad sp create --id "${APPLICATION_CLIENT_ID}"
+echo "Checking if service principal for application exists..."
+if ! az ad sp show --id "${APPLICATION_CLIENT_ID}" &>/dev/null; then
+    echo "Creating service principal for application..."
+    az ad sp create --id "${APPLICATION_CLIENT_ID}"
+else
+    echo "Service principal for application already exists. Skipping creation."
+fi
 
-echo "Assigning Owner role to application on resource group..."
-az role assignment create --assignee "${APPLICATION_CLIENT_ID}" --role "Owner" --scope "/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}"
+echo "Checking if Owner role is already assigned to application on resource group..."
+if ! az role assignment list --assignee "${APPLICATION_CLIENT_ID}" --scope "/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}" --role "Owner" --query "[].principalId" -o tsv | grep -q .; then
+    echo "Assigning Owner role to application on resource group..."
+    az role assignment create --assignee "${APPLICATION_CLIENT_ID}" --role "Owner" --scope "/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}"
+else
+    echo "Owner role already assigned to application on resource group. Skipping assignment."
+fi
 echo "AKS cluster '${K8S_CLUSTER_NAME}' created successfully with OIDC and Entra ID application '${APPLICATION_NAME}'."
