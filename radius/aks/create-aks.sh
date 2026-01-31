@@ -131,3 +131,11 @@ else
     echo "Owner role already assigned to application on resource group. Skipping assignment."
 fi
 echo "AKS cluster '${K8S_CLUSTER_NAME}' created successfully with OIDC and Entra ID application '${APPLICATION_NAME}'."
+
+
+helm repo add azure-workload-identity https://azure.github.io/azure-workload-identity/charts
+helm repo update
+helm install workload-identity-webhook azure-workload-identity/workload-identity-webhook \
+   --namespace azure-workload-identity-system \
+   --create-namespace \
+   --set azureTenantID="${AZURE_TENANT_ID}"
