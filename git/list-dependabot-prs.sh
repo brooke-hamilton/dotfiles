@@ -58,7 +58,7 @@ printf "%-${REPO_WIDTH}s %-${TITLE_WIDTH}s %s\n" "Repository" "PR Title" "URL"
 printf "%-${REPO_WIDTH}s %-${TITLE_WIDTH}s %s\n" "----------" "--------" "---"
 
 # Get all public repositories for the organization
-repos=$(gh repo list "$ORG" --visibility=public --limit 1000 --json name --jq '.[].name')
+repos=$(gh repo list "$ORG" --visibility=public --no-archived --limit 1000 --json name --jq '.[].name')
 
 # Loop through each repository and check for Dependabot PRs
 for repo in $repos; do
