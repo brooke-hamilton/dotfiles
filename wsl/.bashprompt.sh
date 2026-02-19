@@ -5,7 +5,9 @@ __prompt_command() {
     common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
 
     # Worktree detection: git_dir differs from common_dir in worktrees
-    if [[ "$git_dir" != "$common_dir" ]]; then
+    # Canonicalize both paths before comparing to avoid false positives
+    # from mixed relative/absolute path formats
+    if [[ "$(cd "$git_dir" 2>/dev/null && pwd -P)" != "$(cd "$common_dir" 2>/dev/null && pwd -P)" ]]; then
         toplevel=$(git rev-parse --show-toplevel 2>/dev/null)
         local wt_name=${toplevel##*/}
         local status="" counts
