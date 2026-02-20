@@ -56,6 +56,8 @@ Write-Banner "Starting Radius dev environment..."
 Write-Banner "Removing desktop shortcuts..."
 . "$PSScriptRoot\PowerShell\Remove-DesktopShortcuts.ps1"
 
+docker run --detach --name apt-cacher-ng --publish 3142:3142 --restart=unless-stopped sameersbn/apt-cacher-ng
+
 # Remove the existing gh config file if it exists.
 # Invoke-Wsl $wslInstanceName "[ -d .config/gh ] && rm -r .config/gh" | Write-Verbose
 # Create a symlink to the Windows gh config file.
