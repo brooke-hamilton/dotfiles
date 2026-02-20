@@ -225,9 +225,9 @@ wsl.exe -d $DistroName -- echo "Distro started" | Out-Null
 Start-Sleep -Seconds 3
 
 # Check if the mount point exists
-$mountExists = wsl.exe -d $DistroName -- bash -c "test -d /mnt/wsl/$MountName && echo yes || echo no"
+$mountExists = wsl.exe -d $DistroName -- bash -c "mountpoint -q /mnt/wsl/$MountName && echo yes || echo no"
 if ($mountExists.Trim() -ne "yes") {
-    Write-Warning "Mount point /mnt/wsl/$MountName not found. The startup script may need additional time or configuration."
+    Write-Warning "/mnt/wsl/$MountName is not mounted. The startup script may need additional time or configuration."
     Write-Host "You can manually change ownership later by running:" -ForegroundColor Yellow
     Write-Host "  sudo chown 1000:1000 /mnt/wsl/$MountName" -ForegroundColor Yellow
     return
