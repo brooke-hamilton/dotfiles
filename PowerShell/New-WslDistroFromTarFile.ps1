@@ -3,7 +3,7 @@
 Creates a new WSL instance from a tar file.
 
 .PARAMETER NewDistroName
-The name of the distro that will appear in the list of WSL instances.
+The name of the distro that will appear in the list of WSL instances. Download tar from https://ubuntu.com/desktop/wsl.
 
 .PARAMETER TarFilePath
 The path to the tar file that contains the WSL instance to import.
@@ -17,7 +17,7 @@ param (
     [string]$NewDistroName,
     
     [ValidateScript({Test-Path $_ -PathType 'Leaf'})]
-    [string]$TarFilePath = $(Join-Path -Path $HOME -ChildPath "WslExports\Ubuntu.tar"),
+    [string]$TarFilePath = $(Join-Path -Path $HOME -ChildPath "Wsl\Ubuntu.tar"),
     
     [string]$InstallPath
 )
