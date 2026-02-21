@@ -66,43 +66,42 @@ apt:
     golang:
       source: ppa:longsleep/golang-backports
     github-cli:
-      source: "deb [arch=$ARCH signed-by=$KEY_FILE] https://cli.github.com/packages stable main"
+      source: "deb [signed-by=$KEY_FILE] https://cli.github.com/packages stable main"
       keyid: 23F3D4EA75716059
       keyserver: keyserver.ubuntu.com
-
-#     hashicorp:
-#       source: "deb [signed-by=$KEY_FILE] https://apt.releases.hashicorp.com $RELEASE main"
-#       keyid: 798AEC654E5C15428C8E42EEAA16FCBCA621E701
-#       keyserver: keyserver.ubuntu.com
+    hashicorp:
+      source: "deb [signed-by=$KEY_FILE] https://apt.releases.hashicorp.com $RELEASE main"
+      keyid: 798AEC654E5C15428C8E42EEAA16FCBCA621E701
+      keyserver: keyserver.ubuntu.com
 
 packages:
   - git
   - gh
   - ripgrep
-#   - build-essential
-#   - curl
-#   - wget
-#   - jq
-#   - pipx
-#   - aspell
-#   - aspell-en
-#   - postgresql-client
-#   - terraform
-#   - shellcheck
-#   - zstd
-#   - azure-cli
-#   - apt-transport-https
-#   - ca-certificates
-#   - gnupg
-#   - lsb-release
+  - build-essential
+  - curl
+  - wget
+  - jq
+  - pipx
+  - aspell
+  - aspell-en
+  - postgresql-client
+  - shellcheck
+  - zstd
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - terraform
+  # - azure-cli
 
 runcmd:
   # ==========================================================================
   # Clone dotfiles repository
   # ==========================================================================
   - sudo -u __username__ git clone https://github.com/brooke-hamilton/dotfiles /home/__username__/dotfiles
-  - /home/__username__/dotfiles/wsl/setup_go.sh
-  - /home/__username__/dotfiles/wsl/setup_kubernetes_tools.sh
+  # - /home/__username__/dotfiles/wsl/setup_go.sh
+  # - /home/__username__/dotfiles/wsl/setup_kubernetes_tools.sh
 
   # # Commands that need to run as the user within a shell
   # - |
