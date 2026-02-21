@@ -78,6 +78,7 @@ apt:
 packages:
   - git
   - gh
+  - ripgrep
 #   - build-essential
 #   - curl
 #   - wget
@@ -89,7 +90,7 @@ packages:
 #   - terraform
 #   - shellcheck
 #   - zstd
-# #  - azure-cli
+#   - azure-cli
 #   - apt-transport-https
 #   - ca-certificates
 #   - gnupg
