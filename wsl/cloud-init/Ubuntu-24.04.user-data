@@ -55,8 +55,8 @@ write_files:
     defer: true
 
 # package_reboot_if_required: true
-# package_update: true
-# package_upgrade: true
+package_update: true
+package_upgrade: true
 
 apt:
   proxy: "http://localhost:3142"
@@ -100,6 +100,7 @@ runcmd:
   # Clone dotfiles repository
   # ==========================================================================
   - sudo -u __username__ git clone https://github.com/brooke-hamilton/dotfiles /home/__username__/dotfiles
+  - /home/__username__/dotfiles/wsl/install-dsc-latest.sh
   # - /home/__username__/dotfiles/wsl/setup_go.sh
   # - /home/__username__/dotfiles/wsl/setup_kubernetes_tools.sh
 
