@@ -13,10 +13,10 @@ if ($distros -contains $distroName) {
 }
 
 # Copy the cloud init file to the correct location in the user profile.
-..\..\PowerShell\Copy-CloudInitFiles.ps1
+& "$PSScriptRoot\..\..\PowerShell\Copy-CloudInitFiles.ps1"
 
 # Create a new WSL distro
-..\..\PowerShell\New-WslDistroFromTarFile.ps1 -NewDistroName $distroName
+& "$PSScriptRoot\..\..\PowerShell\New-WslDistroFromTarFile.ps1" -NewDistroName $distroName
 
 # Wait for cloud-init to complete
 wsl -d $distroName cloud-init status --wait
