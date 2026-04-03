@@ -80,7 +80,19 @@ if ($IsWindows) {
     }
 
     function devshell {
-        Enter-VsDevShell 4fef1e7a -SkipAutomaticLocation
+        $vsWherePath = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+        if (-not (Test-Path $vsWherePath)) {
+            Write-Error "vswhere.exe not found."
+            return
+        }
+
+        $vsInstanceId = & $vsWherePath -latest -property instanceId | Select-Object -First 1
+        if ([string]::IsNullOrWhiteSpace($vsInstanceId)) {
+            Write-Error "No Visual Studio instance found."
+            return
+        }
+
+        Enter-VsDevShell $vsInstanceId -SkipAutomaticLocation
     }
 
     function vs {
@@ -88,12 +100,14 @@ if ($IsWindows) {
             [Parameter(Mandatory = $true)]
             [string]$solutionPath
         )
-        . "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\devenv.com" $solutionPath
+        #. "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\devenv.com" $solutionPath
+        . "C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\devenv.com" $solutionPath
     }
 
     Set-Alias -Name ll -Value Get-ChildItem
     Import-Module "$PSScriptRoot\New-WslFromDevContainer\New-WslFromDevContainer.psm1"
-    Import-Module "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+    #Import-Module "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+    Import-Module "C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
 } else {
     Import-Module "$PSScriptRoot/New-WslFromDevContainer/New-WslFromDevContainer.psm1"
 }
