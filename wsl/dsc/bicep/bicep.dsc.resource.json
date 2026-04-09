@@ -1,16 +1,16 @@
 {
-    "$schema": "https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/v3/bundled/resource/manifest.json",
-    "type": "BrookeHamilton.Setup/K3d",
+    "$schema": "https://aka.ms/dsc/schemas/v3/bundled/resource/manifest.json",
+    "type": "BrookeHamilton.Setup/Bicep",
     "version": "0.1.0",
-    "description": "Ensure k3d is installed",
-    "tags": ["Linux", "k3d", "Kubernetes"],
+    "description": "Ensure Bicep CLI is installed",
+    "tags": ["Linux", "Bicep", "Azure"],
     "get": {
-        "executable": "k3d.dsc.resource.sh",
+        "executable": "bicep.dsc.resource.sh",
         "args": ["get"],
         "input": "stdin"
     },
     "set": {
-        "executable": "k3d.dsc.resource.sh",
+        "executable": "bicep.dsc.resource.sh",
         "args": ["set"],
         "input": "stdin",
         "implementsPretest": true,
@@ -18,13 +18,13 @@
         "returns": "state"
     },
     "test": {
-        "executable": "k3d.dsc.resource.sh",
+        "executable": "bicep.dsc.resource.sh",
         "args": ["test"],
         "input": "stdin",
         "returns": "state"
     },
     "export": {
-        "executable": "k3d.dsc.resource.sh",
+        "executable": "bicep.dsc.resource.sh",
         "args": ["export"]
     },
     "exitCodes": {
@@ -35,17 +35,17 @@
     "schema": {
         "embedded": {
             "$schema": "http://json-schema.org/draft-07/schema#",
-            "title": "K3d",
+            "title": "Bicep",
             "type": "object",
             "additionalProperties": false,
             "properties": {
                 "version": {
                     "type": "string",
-                    "description": "Installed version of k3d (read-only, returned by get)"
+                    "description": "Installed version of Bicep CLI (read-only, returned by get)"
                 },
                 "_exist": {
                     "type": "boolean",
-                    "description": "Whether k3d should be installed",
+                    "description": "Whether Bicep CLI should be installed",
                     "default": true
                 }
             }
