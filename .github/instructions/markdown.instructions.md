@@ -19,7 +19,7 @@ Instructions for writing clean, consistent, and accessible Markdown documents ba
 - **MD023**: Headings must start at the beginning of the line without indentation
 - **MD024**: Avoid multiple headings with the same content (can be configured to only check sibling headings)
 - **MD025**: Use only one top-level heading (`# Title`) per document
-- **MD026**: Avoid trailing punctuation in headings (periods, colons, exclamation marks)
+- **MD026**: Avoid trailing punctuation in headings (periods, semicolons, colons, exclamation marks, and full-width equivalents; question marks are allowed by default)
 - **MD036**: Use headings instead of emphasis (bold/italic) to denote document sections
 - **MD041**: Start the document with a top-level heading as the first line
 - **MD043**: Follow required heading structure when enforced by project conventions
@@ -61,7 +61,7 @@ Instructions for writing clean, consistent, and accessible Markdown documents ba
 - **MD052**: Ensure reference links use labels that are defined in the document
 - **MD053**: Remove unused link and image reference definitions
 - **MD054**: Use consistent link and image styles throughout the document
-- **MD059**: Use descriptive link text instead of generic phrases like "click here" or "link"
+- **MD059**: Use descriptive link text instead of generic phrases like "click here", "here", "link", or "more"
 
 ## Blockquotes
 
