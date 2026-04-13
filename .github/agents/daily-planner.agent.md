@@ -67,6 +67,7 @@ Use the following template. Replace placeholders with subagent data. Today's dat
 - [ ] {action item from any section}
 
 ### Copilot Agent Candidates
+Sources: subagent "Assign to Copilot" suggestions AND any open issues from the monitored repos that are labeled `good first issue`, have clear acceptance criteria, or involve repetitive/mechanical changes (docs updates, dependency bumps, pattern alignment).
 - [ ] {repo}#{issue} — {title}: {why it's suitable for Copilot}
 
 ## Notes
