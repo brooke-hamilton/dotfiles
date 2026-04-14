@@ -33,7 +33,8 @@ When invoked by the coordinator for daily planning, follow this approach:
 
 1. **Email summary (last 2 days)**: Retrieve and summarize email threads. Group by topic or sender. Highlight emails that require a response.
 2. **Teams chat summary (last 2 days)**: Retrieve and summarize Teams conversations. Note action items mentioned in chats.
-3. **Follow-up suggestions**: Identify threads where a response is overdue or where an action item was assigned.
+3. **Upcoming calendar (next 5 days)**: Retrieve calendar events for the next 5 days. For each event, note the title, date/time, attendees, and whether it requires preparation (e.g., design reviews, 1:1s with action items, demos). Flag events that overlap with high-priority work from the email/Teams summaries so the user can prioritize.
+4. **Follow-up suggestions**: Identify threads where a response is overdue or where an action item was assigned. Include calendar-driven suggestions (e.g., "prepare for Thursday's design review by reviewing PR #X").
 
 ## Output Format
 
@@ -48,9 +49,17 @@ When producing a daily report section, return:
 #### Teams Chat Summary
 - **{Chat/Channel}** with {participants} — {brief summary}. {Action: follow up / none / action item: ...}
 
+#### Upcoming Calendar (next 5 days)
+| Date | Time | Event | Attendees | Prep Needed |
+|------|------|-------|-----------|-------------|
+| {date} | {time} | {title} | {key attendees} | {yes/no — what to prepare} |
+
+**Priority conflicts**: {list any calendar events that overlap with high-priority email/Teams action items, or note "None detected"}
+
 #### Suggested Follow-ups
 - [ ] Reply to {person} about {topic} — {reason/urgency}
 - [ ] Follow up on {action item} from {chat/email}
+- [ ] Prepare for {calendar event} by {specific prep action}
 - [ ] Schedule meeting with {person} about {topic}
 ```
 

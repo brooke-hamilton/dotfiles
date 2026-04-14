@@ -26,7 +26,7 @@ If the user provides repos as arguments, use those instead.
 1. **Parse input**: Determine which repos to report on (user-specified or defaults).
 2. **Spawn ALL subagents in parallel as independent tasks**: Each subagent is fully independent and does not depend on results from any other subagent. Run every subagent simultaneously in a single batch of parallel tool calls:
    - One `github-repo-reporter` subagent per repository (all repos at once)
-   - One `workplace-reporter` subagent for the last 2 days of email and Teams activity
+   - One `workplace-reporter` subagent for the last 2 days of email and Teams activity AND upcoming calendar events for the next 5 days
    IMPORTANT: Issue all subagent tool calls in the SAME response. Do NOT wait for one subagent to finish before starting the next. These are independent, parallel tasks.
 3. **Collect results** from all subagents after they complete.
 4. **Apply template**: Merge all subagent outputs into the daily report template below.
@@ -56,7 +56,11 @@ Use the following template. Replace placeholders with subagent data. Today's dat
 
 ## Workplace Activity
 
-{Insert workplace-reporter output here}
+{Insert workplace-reporter email and Teams output here}
+
+## Upcoming Calendar (next 5 days)
+
+{Insert workplace-reporter calendar output here — table of events with prep guidance and priority conflicts}
 
 ## Action Items Summary
 
@@ -73,11 +77,27 @@ Sources: subagent "Assign to Copilot" suggestions AND any open issues from the m
 ## Notes
 
 _Add your own notes and priorities for the day here._
+
+## M365 Researcher Prompt
+
+Use the following prompt with the M365 Researcher copilot to dig deeper into a topic from today's work:
+
+> {generated prompt — a specific, actionable research question derived from the most interesting or complex topic surfaced across GitHub activity and workplace communications today}
+
+_Topic basis: {1-sentence explanation of why this topic was chosen, referencing the specific PR, issue, email thread, or Teams discussion that inspired it}_
 ```
 
-## M365 Copilot Prompt
+## M365 Researcher Prompt Generation
 
-Generate a suggested prompt to put into M365 Copilot that will add context to the workplace-reporter output.
+After merging all subagent outputs, synthesize a research prompt for the M365 Researcher copilot:
+
+1. **Scan all sections** of the merged report — GitHub activity, workplace emails, Teams chats, and action items.
+2. **Identify the most promising research topic**: Pick the theme that is most complex, cross-cutting, or would benefit from deeper investigation. Prefer topics where the user is actively involved (assigned PRs, email threads requiring a response, ongoing design discussions).
+3. **Write a specific, actionable prompt** that the user can paste directly into the M365 Researcher. The prompt should:
+   - Reference concrete artifacts (e.g., "the design discussion in radius-project/radius#1234")
+   - Ask for information the user doesn't already have (competitive approaches, best practices, related internal documents, prior art in emails/Teams)
+   - Be self-contained — the M365 Researcher won't have access to the daily report, so include enough context in the prompt itself
+4. **Include a 1-sentence rationale** explaining why this topic was chosen over alternatives.
 
 ## After Saving
 
