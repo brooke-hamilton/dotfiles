@@ -38,8 +38,19 @@ If the user provides repos as arguments, use those instead.
 - DO NOT modify any repository content or send any messages — this is a reporting workflow only.
 - DO NOT skip subagents — always spawn both GitHub and workplace reporters.
 - DO NOT fabricate data if a subagent returns no results — show "No data available."
-- ALWAYS save the report file before responding to the user.
+- DO NOT abort the entire workflow if one subagent fails — continue processing all other subagent results and include a failure notice in the report.
+- ALWAYS save the report file before responding to the user, even if some subagents failed.
 - ALWAYS preserve hyperlinks from subagent output. Every PR number, issue number, commit SHA, and Teams/email reference must be a clickable markdown link in the final report. Do not strip or flatten links when merging subagent output into the template.
+
+## Subagent Failure Handling
+
+When a subagent returns an error, times out, or produces no usable output:
+
+1. **Record the failure**: Note which subagent failed, the repo or data source it was responsible for, and the error message or reason (if available).
+2. **Continue processing**: Merge all successful subagent results into the report as normal.
+3. **Insert a failure notice** in place of the missing section using this format:
+   > ⚠️ **Data unavailable** — The `{subagent-name}` subagent failed to return results for `{repo or source}`. Error: {error message or "unknown error"}. Manual review may be needed.
+4. **Summarize failures** in the "After Saving" response to the user — list each failed subagent and its target so the user knows what data is missing.
 
 ## Report Template
 
@@ -71,37 +82,57 @@ Use the following template. Replace placeholders with subagent data. Today's dat
 - [ ] {action item from any section}
 
 ### Copilot Agent Candidates
-Sources: subagent "Assign to Copilot" suggestions AND any open issues from the monitored repos that are labeled `good first issue`, have clear acceptance criteria, or involve repetitive/mechanical changes (docs updates, dependency bumps, pattern alignment).
 - [ ] {repo}#{issue} — {title}: {why it's suitable for Copilot}
 
 ## Notes
 
 _Add your own notes and priorities for the day here._
 
+## M365 Prompt
+
+Use the following prompt with M365 Copilot to take action on a specific task from today's workplace activity:
+
+> {generated prompt — a concrete, task-oriented request grounded in a specific email, Teams message, meeting, or work item from today's workplace activity}
+
+_Task basis: {1-sentence explanation of what specific workplace item this prompt addresses}_
+
 ## M365 Researcher Prompt
 
-Use the following prompt with the M365 Researcher copilot to dig deeper into a topic from today's work:
+Use the following prompt with the M365 Researcher copilot to explore an academic or conceptual topic inspired by today's work:
 
-> {generated prompt — a specific, actionable research question derived from the most interesting or complex topic surfaced across GitHub activity and workplace communications today}
+> {generated prompt — a broad, academic or conceptual research question inspired by a theme from today's activity, framed independently of specific work items so it surfaces general knowledge, best practices, or prior art}
 
-_Topic basis: {1-sentence explanation of why this topic was chosen, referencing the specific PR, issue, email thread, or Teams discussion that inspired it}_
+_Topic basis: {1-sentence explanation of the theme from today's work that inspired this research direction}_
 ```
+
+## M365 Prompt Generation
+
+After merging all subagent outputs, synthesize an actionable prompt for regular M365 Copilot:
+
+1. **Scan workplace activity** — emails, Teams messages, and calendar events from the workplace-reporter output.
+2. **Identify the most pressing task**: Pick the single workplace item that most needs the user's attention — an email requiring a response, a meeting to prepare for, or a Teams thread to follow up on.
+3. **Write a concrete, task-oriented prompt** the user can paste directly into M365 Copilot. The prompt should:
+   - Be specific to the identified item (e.g., "Draft a reply to [person]'s email about [topic] that addresses [specific points]")
+   - Include enough context for M365 Copilot to act without access to the daily report
+   - Ask for a deliverable (a draft, a summary, a list of questions, etc.)
+4. **Include a 1-sentence explanation** of which workplace item the prompt addresses.
 
 ## M365 Researcher Prompt Generation
 
-After merging all subagent outputs, synthesize a research prompt for the M365 Researcher copilot:
+After merging all subagent outputs, synthesize an academic research prompt for the M365 Researcher copilot:
 
 1. **Scan all sections** of the merged report — GitHub activity, workplace emails, Teams chats, and action items.
-2. **Identify the most promising research topic**: Pick the theme that is most complex, cross-cutting, or would benefit from deeper investigation. Prefer topics where the user is actively involved (assigned PRs, email threads requiring a response, ongoing design discussions).
-3. **Write a specific, actionable prompt** that the user can paste directly into the M365 Researcher. The prompt should:
-   - Reference concrete artifacts (e.g., "the design discussion in radius-project/radius#1234")
-   - Ask for information the user doesn't already have (competitive approaches, best practices, related internal documents, prior art in emails/Teams)
-   - Be self-contained — the M365 Researcher won't have access to the daily report, so include enough context in the prompt itself
-4. **Include a 1-sentence rationale** explaining why this topic was chosen over alternatives.
+2. **Identify an underlying conceptual or technical theme**: Look for recurring topics, architectural decisions, or process challenges that appear across today's activity. Choose a theme that would benefit from broader knowledge — not a specific work item, but the class of problem it represents.
+3. **Write a broad, academic prompt** that the user can paste directly into M365 Researcher. The prompt should:
+   - Be framed as a general question, not tied to a specific PR, email, or work item
+   - Ask for best practices, research findings, competitive approaches, or historical context
+   - Be self-contained — the M365 Researcher won't have access to the daily report, so describe the topic clearly without referencing internal artifacts
+4. **Include a 1-sentence rationale** explaining which theme from today's activity inspired the prompt and why it warrants broader research.
 
 ## After Saving
 
 Tell the user:
 1. Where the report was saved
-2. How many repos were analyzed
+2. How many repos were analyzed successfully
 3. The top 3 action items across all sections
+4. Any subagents that failed, and what data is missing as a result
