@@ -495,29 +495,20 @@ ensure_edit() {
 }
 
 # ============================================================================
-# GitHub CLI extensions
+# GitHub Copilot CLI
 # ============================================================================
-ensure_gh_extensions() {
+ensure_copilot_cli() {
     echo "============================================================================"
-    echo "GitHub CLI extensions"
+    echo "GitHub Copilot CLI"
     echo "============================================================================"
 
-    local token
-    token="$(gh.exe auth token 2>/dev/null || true)"
-    if [[ -z "${token}" ]]; then
-        echo "gh extensions: skipped (no Windows gh token available)"
+    if command -v copilot &>/dev/null; then
+        echo "copilot: already installed ($(copilot --version 2>/dev/null))"
         return
     fi
-    export GITHUB_TOKEN="${token}"
 
-    if ! gh extension list 2>/dev/null | grep -q "gh-copilot"; then
-        gh extension install github/gh-copilot
-    else
-        echo "gh-copilot: already installed"
-    fi
-    gh alias set co copilot --clobber
-
-    echo "GitHub CLI extensions done"
+    curl -fsSL https://gh.io/copilot-install | bash
+    echo "copilot: $(copilot --version 2>/dev/null)"
 }
 
 # ============================================================================
@@ -625,7 +616,7 @@ main() {
     ensure_bicep
     ensure_powershell
     ensure_edit
-    ensure_gh_extensions
+    ensure_copilot_cli
     ensure_pipx_packages
     ensure_gitconfig
     ensure_bashrc
