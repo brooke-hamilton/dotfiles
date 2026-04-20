@@ -84,6 +84,13 @@ Use the following template. Replace placeholders with subagent data. Today's dat
 ### Copilot Agent Candidates
 - [ ] {repo}#{issue} — {title}: {why it's suitable for Copilot}
 
+### Top Copilot Agent Pick
+- **Top pick**: {issue link} — {title}: {1-sentence justification against the selection criteria}
+- **Runners-up**:
+  1. {issue link} — {title}: {1-sentence justification}
+  2. {issue link} — {title}: {1-sentence justification}
+- _If no triaged candidates exist, state that here and suggest which untriaged candidate to triage first._
+
 ## Notes
 
 _Add your own notes and priorities for the day here._
@@ -104,6 +111,21 @@ Use the following prompt with the M365 Researcher copilot to explore an academic
 
 _Topic basis: {1-sentence explanation of the theme from today's work that inspired this research direction}_
 ```
+
+## Top Copilot Agent Pick
+
+After merging all subagent outputs, select the single best issue to assign to GitHub Copilot coding agent from the Copilot Agent Candidates across all repositories:
+
+1. **Filter**: From all candidates reported by the github-repo-reporter subagents, keep only those that meet ALL of these criteria:
+   - Has the `triaged` label (untriaged issues need human triage first)
+   - Unassigned
+   - Well-defined, small scope (ideally 1-3 files changed)
+   - Clear success criteria with low ambiguity
+   - Mechanical or pattern-based changes preferred over design-heavy work
+2. **Rank**: Order qualifying candidates by expected ease-of-completion for Copilot agent — favor high user impact, narrow scope, and clear testability.
+3. **Select**: Pick the top candidate as the recommended assignment.
+4. **Populate the template section** using the output format below.
+5. If no candidates have the `triaged` label, state that and suggest which untriaged candidate should be triaged first.
 
 ## M365 Prompt Generation
 

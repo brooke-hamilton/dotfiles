@@ -43,6 +43,7 @@ You are a GitHub repository activity analyst. Your job is to gather and summariz
    - Do not include issues with the "task" label.
    - Do not include issues assigned to a user.
    - Do not include issues linked to a pull request.
+   - For each candidate, note whether it has the `triaged` label and list all labels on the issue. This metadata is critical for downstream selection.
 
 ## Output Format
 
@@ -76,9 +77,9 @@ If no `c9k-nightly` issue exists, write "No CI failure digest found."
 |----------|------|--------|--------|
 | [#{number}](https://github.com/{owner}/{repo}/pull/{number}) {title} | PR | {open/merged/closed} | {dependency and version bump summary} |
 #### Copilot Agent Candidates
-| Issue | Why it's a good candidate |
-|-------|---------------------------|
-| [#{number}](https://github.com/{owner}/{repo}/issues/{number}) {title} | {why it meets the criteria above} |
+| Issue | Labels | Why it's a good candidate |
+|-------|--------|---------------------------|
+| [#{number}](https://github.com/{owner}/{repo}/issues/{number}) {title} | `triaged`, `area/foo` | {why it meets the criteria above} |
 
 #### Suggested Actions
 - **Review**: [#{number}](https://github.com/{owner}/{repo}/pull/{number}) {title} — {why}
