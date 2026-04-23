@@ -10,25 +10,46 @@ if ($IsWindows) {
             [int]$Count
         )
 
-        $segment = "$Prefix$Count"
         if ($Count -ne 0) {
-            Write-Host $segment -ForegroundColor Yellow -NoNewline
-        } else {
-            Write-Host $segment -NoNewline
+            Write-Host " $Prefix$Count" -ForegroundColor Yellow -NoNewline
         }
+    }
+
+    function Test-InGitRepo {
+        param ([string]$StartPath)
+
+        if ([string]::IsNullOrEmpty($StartPath)) { return $false }
+
+        $dir = $StartPath
+        while (-not [string]::IsNullOrEmpty($dir)) {
+            $candidate = [System.IO.Path]::Combine($dir, '.git')
+            if ([System.IO.Directory]::Exists($candidate) -or [System.IO.File]::Exists($candidate)) {
+                return $true
+            }
+            $parent = [System.IO.Path]::GetDirectoryName($dir)
+            if ([string]::IsNullOrEmpty($parent) -or $parent -eq $dir) { return $false }
+            $dir = $parent
+        }
+        return $false
     }
 
     function prompt {
         $currentPath = (Get-Location).Path
         Write-Host "PS $currentPath" -NoNewline
 
-        if ($script:HasGit) {
+        try {
+            $inRepo = $script:HasGit -and (Test-InGitRepo -StartPath $currentPath)
+        } catch {
+            $inRepo = $false
+        }
+
+        if ($inRepo) {
             $branch = $null
             $stagedCount = 0
             $unstagedCount = 0
             $untrackedCount = 0
             $aheadCount = 0
-            $statusLines = git status --porcelain=2 --branch 2>$null
+            $statusLines = git status --porcelain=2 --branch --untracked-files=no 2>$null
 
             if ($LASTEXITCODE -eq 0) {
                 foreach ($line in $statusLines) {
@@ -64,7 +85,7 @@ if ($IsWindows) {
             }
 
             if (-not [string]::IsNullOrWhiteSpace($branch)) {
-                Write-Host "(" -NoNewline
+                Write-Host " (" -NoNewline
                 Write-Host $branch -ForegroundColor Red -NoNewline
 
                 Write-GitPromptSegment -Prefix "+" -Count $stagedCount
