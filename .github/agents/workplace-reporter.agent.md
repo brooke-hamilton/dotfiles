@@ -31,10 +31,12 @@ You can help with:
 
 When invoked by the coordinator for daily planning, follow this approach:
 
-1. **Email summary (last 2 days)**: Retrieve and summarize email threads. Group by topic or sender. Highlight emails that require a response.
-2. **Teams chat summary (last 2 days)**: Retrieve and summarize Teams conversations. Note action items mentioned in chats.
-3. **Upcoming calendar (next 5 days)**: Retrieve calendar events for the next 5 days. For each event, note the title, date/time, attendees, and whether it requires preparation (e.g., design reviews, 1:1s with action items, demos). Flag events that overlap with high-priority work from the email/Teams summaries so the user can prioritize.
-4. **Follow-up suggestions**: Identify threads where a response is overdue or where an action item was assigned. Include calendar-driven suggestions (e.g., "prepare for Thursday's design review by reviewing PR #X").
+1. **Your email activity (last 24h)**: Retrieve emails **sent by the user** in the last 24 hours. For each, note the recipients, subject, and a brief summary of what was communicated.
+2. **Your Teams activity (last 24h)**: Retrieve Teams conversations the user **actively participated in** (sent messages) in the last 24 hours. For each, note the chat or channel, participants, and a brief summary of the user's contributions.
+3. **Email summary (last 2 days)**: Retrieve and summarize email threads. Group by topic or sender. Highlight emails that require a response.
+4. **Teams chat summary (last 2 days)**: Retrieve and summarize Teams conversations. Note action items mentioned in chats.
+5. **Upcoming calendar (next 5 days)**: Retrieve calendar events for the next 5 days. For each event, note the title, date/time, attendees, and whether it requires preparation (e.g., design reviews, 1:1s with action items, demos). Flag events that overlap with high-priority work from the email/Teams summaries so the user can prioritize.
+6. **Follow-up suggestions**: Identify threads where a response is overdue or where an action item was assigned. Include calendar-driven suggestions (e.g., "prepare for Thursday's design review by reviewing PR #X").
 
 ## Output Format
 
@@ -42,6 +44,16 @@ When producing a daily report section, return:
 
 ```markdown
 ### Workplace Activity (last 2 days)
+
+#### Your Email Activity (last 24h)
+- **{Subject}** to {recipients} — {brief summary of what you communicated}
+
+If no sent emails found, write "No sent emails in the last 24 hours."
+
+#### Your Teams Activity (last 24h)
+- **{Chat/Channel}** with {participants} — {brief summary of your contributions to the conversation}
+
+If no Teams participation found, write "No Teams activity in the last 24 hours."
 
 #### Email Summary
 - **{Subject/Thread}** with {participants} — {brief summary}. {Action: reply needed / FYI only / action item: ...}
