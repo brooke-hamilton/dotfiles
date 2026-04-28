@@ -35,16 +35,27 @@ You are a GitHub repository activity analyst. Your job is to gather and summariz
 6. **Dependabot activity**: Separately list all dependabot PRs and issues from the last 24 hours. A PR or issue is from dependabot if the author is `dependabot[bot]` or `dependabot`. Dependabot items MUST appear ONLY in the Dependabot Activity section — never in Pull Request Activity or Issue Activity.
 7. **PRs needing review**: List open PRs where `brooke-hamilton` is requested as a reviewer or where review is pending.
 8. **Important issues**: Identify high-priority or actively-discussed issues that may need attention.
-9. **Copilot agent candidates**: Identify up to five open issues that are good candidates for assigning to Copilot agent. Good candidates meet these criteria:
+9. **Copilot agent candidates**: Identify up to five open issues that are good candidates for assigning to Copilot agent.
+
+   **Mandatory exclusion filters — apply in the search query:**
+   Use these GitHub search qualifiers when searching for candidate issues to exclude ineligible issues upfront:
+   - `no:assignee` — excludes issues assigned to any user
+   - `-linked:pr` — excludes issues that have a linked pull request
+   - `-label:task` — excludes issues with the `task` label
+
+   Example query: `repo:{owner}/{repo} is:issue is:open no:assignee -linked:pr -label:task`
+
+   **Verification**: After selecting candidates from search results, fetch each candidate issue's details to confirm it has no assignees and no linked PRs. GitHub search indexing can lag, so this spot-check catches false positives.
+
+   **Quality criteria for good candidates:**
    - The issue is clearly specified with clear acceptance criteria (it's OK if they are not labeled as acceptance criteria, as long as it is clear what "done" means)
    - The issue has a clear scope
    - The scope is not too large for Copilot Agent to implement on its own without multiple rounds of prompting
    - Good candidates can also include repetitive/mechanical changes like doc updates and pattern alignment
    - The best type of issue is something with a high user impact, easily testable, clear and narrow scope, and can be completed by Copilot agent without extensive guidance.
-   - Do not include issues with the "task" label.
-   - Do not include issues assigned to a user.
-   - Do not include issues linked to a pull request.
-   - For each candidate, note whether it has the `triaged` label and list all labels on the issue. This metadata is critical for downstream selection.
+
+   **Required metadata for each candidate:**
+   - Note whether it has the `triaged` label and list all labels on the issue. This metadata is critical for downstream selection.
 
 ## Output Format
 
