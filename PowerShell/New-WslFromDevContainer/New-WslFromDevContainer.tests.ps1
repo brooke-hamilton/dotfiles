@@ -144,6 +144,9 @@ Describe 'New-WslFromDevContainer' {
     
     AfterEach {
         Get-ChildItem -Path $testDataPath -Recurse -Force | Remove-Item -Recurse -Force
+        if ($wslInstanceName) {
+            wsl.exe --unregister $wslInstanceName 2>$null
+        }
     }    
     
     InModuleScope 'New-WslFromDevContainer' {
@@ -285,7 +288,6 @@ Describe 'New-WslFromDevContainer' {
 
         # Assert
         Assert-WslInstance -wslInstanceName $wslInstanceName
-        Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
     It 'Creates WSL instance from workspace folder with multiple devcontainer.json files' {
@@ -302,7 +304,6 @@ Describe 'New-WslFromDevContainer' {
 
         # Assert
         Assert-WslInstance -wslInstanceName $wslInstanceName
-        Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
     It "Can get dev container json" -Tag DevContainerJson {
@@ -325,7 +326,6 @@ Describe 'New-WslFromDevContainer' {
 
         # Assert
         Assert-WslInstance -wslInstanceName $wslInstanceName
-        Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
     It 'Creates WSL instance with default name with extensions' -Tag 'DefaultCaseWithExtensions' {
@@ -338,20 +338,18 @@ Describe 'New-WslFromDevContainer' {
 
         # Assert
         Assert-WslInstance -wslInstanceName $wslInstanceName
-        Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
     It 'Uses workspace folder name when devcontainer.json has no name property' -Tag 'NoName' {
         # Arrange
         New-DevContainerJsonFile -workspaceFolder $testDataPath -jsonContent (Get-DevContainerJsonWithoutName) | Out-Null
-        $expectedWslName = (Split-Path -Leaf $testDataPath)
+        $wslInstanceName = (Split-Path -Leaf $testDataPath)
         
         # Act
         { New-WslFromDevContainer -WorkspaceFolder $testDataPath } | Should -Not -Throw
 
         # Assert
-        Assert-WslInstance -wslInstanceName $expectedWslName
-        Remove-WslInstance -wslInstanceName $expectedWslName
+        Assert-WslInstance -wslInstanceName $wslInstanceName
     }
 
     It 'Skips user name update' -Tag 'SkipUserNameChange' {
@@ -365,7 +363,6 @@ Describe 'New-WslFromDevContainer' {
         # Assert
         Assert-WslInstance -wslInstanceName $wslInstanceName
         Assert-UserConfiguration -userName 'vscode'
-        Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
     It 'Can set user name' -Tag 'SetUserName' {
@@ -379,7 +376,6 @@ Describe 'New-WslFromDevContainer' {
         # Assert
         Assert-WslInstance -wslInstanceName $wslInstanceName
         Assert-UserConfiguration -userName 'walter'
-        Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
     It 'Throws error with two instances of the same name' -Tag 'TwoInstances' {
@@ -394,7 +390,6 @@ Describe 'New-WslFromDevContainer' {
         | ForEach-Object { $_.Exception.Message | Should -Contain $expectedMessage }
 
         Assert-WslInstance -wslInstanceName $wslInstanceName
-        Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 
     It 'Does not throw error with two instances of the same name and Force parameter' -Tag 'TwoInstancesNoError' {
@@ -407,6 +402,5 @@ Describe 'New-WslFromDevContainer' {
         { New-WslFromDevContainer -WorkspaceFolder $testDataPath -Force } | Should -Not -Throw
 
         Assert-WslInstance -wslInstanceName $wslInstanceName
-        Remove-WslInstance -wslInstanceName $wslInstanceName
     }
 }

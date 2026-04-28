@@ -1,5 +1,6 @@
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
 <#
 .SYNOPSIS
@@ -333,7 +334,7 @@ function Set-WslEnv {
 
 <#
 .SYNOPSIS
-Creates a WSL instance from a dev container specification (devcontainer.json file).
+Runs a bash command in the specified WSL distribution from the user's home directory.
 #>
 function Invoke-Wsl {
     param (
@@ -343,7 +344,16 @@ function Invoke-Wsl {
         [string]$command
     )
 
-    wsl.exe --distribution $wslInstanceName --cd "~" -- bash -c "$command"
+    # Locally disable $PSNativeCommandUseErrorActionPreference because many bash commands
+    # (e.g., '[ -f .gitconfig ] && rm .gitconfig') return non-zero exit codes for benign reasons.
+    $previousPreference = $PSNativeCommandUseErrorActionPreference
+    $PSNativeCommandUseErrorActionPreference = $false
+    try {
+        wsl.exe --distribution $wslInstanceName --cd "~" -- bash -c "$command"
+    }
+    finally {
+        $PSNativeCommandUseErrorActionPreference = $previousPreference
+    }
 }
 
 function Set-WindowsGitConfig {
