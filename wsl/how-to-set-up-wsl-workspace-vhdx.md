@@ -90,3 +90,20 @@ Log into the WSL distribution and verify that your workspace has been mounted.
 # For example, if the mounted disk is named "workspace", run this command.
 sudo chown 1000:1000 /mnt/wsl/workspace
 ```
+
+## 5. Reclaim empty space in the VHDX file
+
+Over time, the VHDX file grows as data is written, but it does not automatically shrink when files are deleted. To reclaim unused space, you need to zero out the free blocks inside the filesystem and then compact the VHDX.
+
+First, from inside the WSL distribution, run `fstrim` on the mounted workspace to discard unused blocks:
+
+```BASH
+sudo fstrim -v /mnt/wsl/workspace
+```
+
+Then, shut down WSL and compact the VHDX from an elevated PowerShell prompt on Windows:
+
+```PowerShell
+wsl.exe --shutdown
+Optimize-VHD -Path "workspace.vhdx" -Mode Full
+```
