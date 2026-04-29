@@ -19,8 +19,7 @@ readonly NVM_VERSION="0.40.3"
 readonly KIND_VERSION="0.29.0"
 readonly ORAS_VERSION="1.2.3"
 readonly GOLANGCI_LINT_VERSION="1.64.6"
-readonly DOTNET_8_PACKAGE="dotnet-sdk-8.0"
-readonly DOTNET_10_VERSION="10.0.100"
+readonly DOTNET_VERSION="10.0.100"
 
 # ============================================================================
 # Helpers
@@ -370,36 +369,26 @@ ensure_oras() {
 # ============================================================================
 ensure_dotnet() {
     echo "============================================================================"
-    echo ".NET (${DOTNET_8_PACKAGE} + ${DOTNET_10_VERSION})"
+    echo ".NET ${DOTNET_VERSION}"
     echo "============================================================================"
 
-    # .NET 8 via apt
-    if ! dpkg -s dotnet-sdk-8.0 &>/dev/null; then
-        wget -q https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb
-        sudo dpkg -i /tmp/packages-microsoft-prod.deb
-        rm -f /tmp/packages-microsoft-prod.deb
-        sudo apt-get update
-    fi
-    sudo apt-get install -y "${DOTNET_8_PACKAGE}"
-
-    # .NET 10 via install script
-    local dotnet_10_installed="false"
+    local dotnet_installed="false"
     if command -v dotnet &>/dev/null; then
-        if dotnet --list-sdks 2>/dev/null | grep -q "^${DOTNET_10_VERSION}"; then
-            dotnet_10_installed="true"
+        if dotnet --list-sdks 2>/dev/null | grep -q "^${DOTNET_VERSION}"; then
+            dotnet_installed="true"
         fi
     fi
 
-    if [[ "${dotnet_10_installed}" == "false" ]]; then
-        echo "dotnet: installing SDK ${DOTNET_10_VERSION}"
+    if [[ "${dotnet_installed}" == "false" ]]; then
+        echo "dotnet: installing SDK ${DOTNET_VERSION}"
         local install_script
         install_script="$(mktemp)"
         wget -q https://dot.net/v1/dotnet-install.sh -O "${install_script}"
         chmod +x "${install_script}"
-        sudo bash "${install_script}" --version "${DOTNET_10_VERSION}" --install-dir /usr/share/dotnet
+        sudo bash "${install_script}" --version "${DOTNET_VERSION}" --install-dir /usr/share/dotnet
         rm -f "${install_script}"
     else
-        echo "dotnet: SDK ${DOTNET_10_VERSION} already installed"
+        echo "dotnet: SDK ${DOTNET_VERSION} already installed"
     fi
 }
 
