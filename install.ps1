@@ -40,6 +40,55 @@ dsc config set --file "$PSScriptRoot\.configurations\apps-to-remove.dsc.yaml"
 dsc config set --file "$PSScriptRoot\.configurations\apps.dsc.yaml"
 dsc config set --file "$PSScriptRoot\.configurations\office-apps.dsc.yaml"
 
+Write-Banner "Installing Rust development toolchain..."
+Update-PathEnvVar
+
+# Install rustup (which installs cargo, rustc, etc.)
+if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+    winget install --id Rustlang.Rustup --disable-interactivity --source winget --accept-package-agreements --accept-source-agreements
+    Update-PathEnvVar
+}
+
+# Install Visual Studio Build Tools with C++ workload and required components
+winget install --id Microsoft.VisualStudio.2022.BuildTools --disable-interactivity --source winget --accept-package-agreements --accept-source-agreements `
+    --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre"
+Update-PathEnvVar
+
+# Add CMake from Visual Studio to PATH if not already available
+if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
+    $cmakeSearchPaths = @(
+        "${env:ProgramFiles}\Microsoft Visual Studio\*\*\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin"
+        "${env:ProgramFiles}\CMake\bin"
+    )
+    foreach ($pattern in $cmakeSearchPaths) {
+        $found = Resolve-Path $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) {
+            [System.Environment]::SetEnvironmentVariable("Path", [System.Environment]::GetEnvironmentVariable("Path", "User") + ";$($found.Path)", "User")
+            Update-PathEnvVar
+            Write-Output "Added CMake to PATH: $($found.Path)"
+            break
+        }
+    }
+}
+
+# Install zig (used for cross-compiling Rust to Linux targets)
+if (-not (Get-Command zig -ErrorAction SilentlyContinue)) {
+    winget install --id zig.zig --disable-interactivity --source winget --accept-package-agreements --accept-source-agreements
+    Update-PathEnvVar
+}
+
+# Install cargo-zigbuild for cross-compilation
+if (-not (Get-Command cargo-zigbuild -ErrorAction SilentlyContinue)) {
+    cargo install --locked cargo-zigbuild
+}
+
+# Add common Rust targets
+rustup target add x86_64-pc-windows-msvc
+rustup target add x86_64-unknown-linux-musl
+rustup target add wasm32-wasip2
+rustup target add wasm32-unknown-unknown
+rustup component add rustfmt clippy rust-analyzer rust-src
+
 Write-Banner "Installing Dev Container CLI..."
 Update-PathEnvVar
 npm install -g @devcontainers/cli
