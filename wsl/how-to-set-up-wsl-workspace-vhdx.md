@@ -95,7 +95,13 @@ sudo chown 1000:1000 /mnt/wsl/workspace
 
 Over time, the VHDX file grows as data is written, but it does not automatically shrink when files are deleted. To reclaim unused space, you need to zero out the free blocks inside the filesystem and then compact the VHDX.
 
-First, from inside the WSL distribution, run `fstrim` on the mounted workspace to discard unused blocks:
+Find disk usage and remove large unused files:
+
+```BASH
+sudo du -xhd1 / 2>/dev/null | sort -h
+```
+
+Run `fstrim` on the mounted workspace to discard unused blocks:
 
 ```BASH
 sudo fstrim -v /mnt/wsl/workspace
