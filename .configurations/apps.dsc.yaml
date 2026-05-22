@@ -2,9 +2,25 @@
 $schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2024/04/config/document.json
 metadata:
   name: Application Installation Configuration
-  description: Install essential applications using WinGet
-  version: 1.0.0
+  description: Install essential applications and enable developer-friendly settings using WinGet + DSC v3.
+  version: 1.1.0
 resources:
+  # ----------------------------------------------------------------
+  # System policy: enable creating symlinks without admin so the
+  # git-ssh step (and other dotfile symlinks) can run in the user pass.
+  # HKLM requires admin -- this whole document is applied in the admin pass.
+  # ----------------------------------------------------------------
+  - name: enable developer mode (unprivileged symlinks)
+    type: Microsoft.Windows/Registry
+    properties:
+      keyPath: HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock
+      valueName: AllowDevelopmentWithoutDevLicense
+      valueData:
+        DWord: 1
+
+  # ----------------------------------------------------------------
+  # Store apps
+  # ----------------------------------------------------------------
   - name: install sysinternals
     type: Microsoft.WinGet/Package
     properties:
@@ -29,18 +45,13 @@ resources:
       acceptAgreements: true
       _exist: true
 
+  # ----------------------------------------------------------------
+  # Dev tools
+  # ----------------------------------------------------------------
   - name: visual studio code
     type: Microsoft.WinGet/Package
     properties:
       id: "Microsoft.VisualStudioCode"
-      source: "winget"
-      acceptAgreements: true
-      _exist: true
-
-  - name: Discord
-    type: Microsoft.WinGet/Package
-    properties:
-      id: "Discord.Discord"
       source: "winget"
       acceptAgreements: true
       _exist: true
@@ -60,19 +71,11 @@ resources:
       source: "winget"
       acceptAgreements: true
       _exist: true
-    
+
   - name: gpg
     type: Microsoft.WinGet/Package
     properties:
       id: "GnuPG.GnuPG"
-      source: "winget"
-      acceptAgreements: true
-      _exist: true
-
-  - name: Slack
-    type: Microsoft.WinGet/Package
-    properties:
-      id: "SlackTechnologies.Slack"
       source: "winget"
       acceptAgreements: true
       _exist: true
@@ -89,6 +92,60 @@ resources:
     type: Microsoft.WinGet/Package
     properties:
       id: "OpenJS.NodeJS.LTS"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true
+
+  - name: rustup
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "Rustlang.Rustup"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true
+
+  - name: zig
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "zig.zig"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true
+
+  # ----------------------------------------------------------------
+  # Chat / collaboration
+  # ----------------------------------------------------------------
+  - name: Discord
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "Discord.Discord"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true
+
+  - name: Slack
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "SlackTechnologies.Slack"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true
+
+  # ----------------------------------------------------------------
+  # Microsoft 365 (formerly office-apps.dsc.yaml)
+  # ----------------------------------------------------------------
+  - name: install M365
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "Microsoft.Office"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true
+
+  - name: install teams
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "Microsoft.Teams"
       source: "winget"
       acceptAgreements: true
       _exist: true

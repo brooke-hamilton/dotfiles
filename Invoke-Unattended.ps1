@@ -1,42 +1,63 @@
 <#
 .SYNOPSIS
-    Runs install.ps1 unattended with at most one UAC prompt.
+    Runs install.ps1 unattended in two passes (admin, then user) with at
+    most one UAC prompt.
 
 .DESCRIPTION
-    Splits the installation into two passes:
+    The admin pass runs first because its installs (rustup, node, etc.) put
+    binaries on PATH that the user pass needs (cargo install, npm install -g,
+    rustup target add).
 
-      1. Elevated pass (Phase 1): temporarily sets HKLM
-         ConsentPromptBehaviorAdmin = 0 so child installers (Visual Studio,
-         Office, MSI bootstrappers) that explicitly re-launch with the "runas"
-         verb are elevated silently instead of popping additional UAC dialogs.
-         The original value is restored in a finally block even on Ctrl-C /
-         exception. Then runs install.ps1 -AdminOnly.
+    Elevation uses Windows `sudo` (inline mode). Arguments are passed to the
+    elevated helper structurally - no string interpolation, no temp scripts
+    built with quote escaping.
 
-      2. User-context pass (Phase 2): runs steps that do not require admin
-         (HKCU registry tweaks, cargo install, rustup target add, git clone
-         into your profile, etc.). Runs second because some of these depend
-         on tools the admin pass just installed (cargo, rustup).
+    The legacy "lower HKLM ConsentPromptBehaviorAdmin to 0 for the duration
+    of the install" behavior is now opt-in via -ConsentToLowerUAC. Without
+    that switch, child installers that explicitly re-elevate (Visual Studio,
+    Office bootstrappers) may produce additional UAC prompts. With the
+    switch you get a single prompt and silent child elevation, but you must
+    accept that a hard kill of the elevated pwsh leaves UAC at "elevate
+    silently" until you restore it manually.
 
-    Result: exactly one UAC prompt at the start of the elevated pass.
+.PARAMETER Skip
+    Comma-separated or array list of step names to skip in install.ps1.
 
-    Security note: while ConsentPromptBehaviorAdmin is 0, any process running
-    under your admin token can elevate without prompting. This window lasts
-    only as long as the admin pass runs and is always restored.
+.PARAMETER Only
+    Run only the named steps. Overrides -Skip when set.
+
+.PARAMETER AdminOnly
+    Run only the elevated pass.
+
+.PARAMETER UserOnly
+    Run only the unelevated pass.
+
+.PARAMETER Plan
+    Dry-run: prints the step plan and runs `dsc config test` for DSC steps
+    without changing system state.
+
+.PARAMETER ConsentToLowerUAC
+    Opt in to temporarily setting HKLM ConsentPromptBehaviorAdmin = 0 during
+    the admin pass so child installers do not raise additional UAC dialogs.
+    Off by default. See SECURITY NOTE in the file header above.
 
 .EXAMPLE
     .\Invoke-Unattended.ps1
 
 .EXAMPLE
-    .\Invoke-Unattended.ps1 -Skip vs-build-tools,radius-dev-env
+    .\Invoke-Unattended.ps1 -ConsentToLowerUAC
+
+.EXAMPLE
+    .\Invoke-Unattended.ps1 -Plan
 #>
 [CmdletBinding()]
 param(
     [string[]]$Skip = @(),
     [string[]]$Only = @(),
-    # Skip the user-context pass.
     [switch]$AdminOnly,
-    # Skip the elevated pass.
-    [switch]$UserOnly
+    [switch]$UserOnly,
+    [switch]$Plan,
+    [switch]$ConsentToLowerUAC
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,63 +66,48 @@ if ($AdminOnly -and $UserOnly) {
     throw '-AdminOnly and -UserOnly are mutually exclusive.'
 }
 
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$here    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $install = Join-Path $here 'install.ps1'
-if (-not (Test-Path $install)) { throw "install.ps1 not found at $install" }
+$helper  = Join-Path $here 'PowerShell\Invoke-AdminPhase.ps1'
 
-# Forward -Skip/-Only as a single comma-joined string; install.ps1 splits them.
-$forward = @()
-if ($Skip) { $forward += '-Skip'; $forward += ($Skip -join ',') }
-if ($Only) { $forward += '-Only'; $forward += ($Only -join ',') }
+foreach ($p in @($install, $helper)) {
+    if (-not (Test-Path -LiteralPath $p)) { throw "required script not found: $p" }
+}
 
-# Phase 1: admin pass runs first so its installs (rustup, node, etc.) are on PATH
-# before the user pass tries to use them (cargo install, npm install -g, rustup target add).
+# Flatten any "a,b" strings into a real array, then re-join into a single
+# comma-joined value when forwarding (install.ps1 splits again).
+$skipFlat = @($Skip | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$onlyFlat = @($Only | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+
+# ------------------------------------------------------------------
+# Phase 1: admin pass
+# ------------------------------------------------------------------
 if (-not $UserOnly) {
     Write-Host ''
     Write-Host '################################################################'
-    Write-Host '# Phase 1: admin steps (one UAC prompt, then silent)'
+    if ($Plan) {
+        Write-Host '# Phase 1 (PLAN): admin steps'
+    } else {
+        Write-Host '# Phase 1: admin steps (one UAC prompt, then runs silently)'
+    }
     Write-Host '################################################################'
 
-    # Generate a temp script that, when run elevated, lowers the UAC consent prompt,
-    # runs install.ps1 -AdminOnly, and always restores the original value.
-    # Escape single quotes in interpolated paths/args to keep the heredoc valid.
-    $installEsc = $install.Replace("'", "''")
-    $forwardLiteral = ($forward | ForEach-Object { "'$($_.Replace("'", "''"))'" }) -join ', '
-    $elevated = @"
-`$ErrorActionPreference = 'Continue'
-`$key  = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-`$name = 'ConsentPromptBehaviorAdmin'
-`$prop = Get-ItemProperty -Path `$key -Name `$name -ErrorAction SilentlyContinue
-`$orig = if (`$prop) { `$prop.`$name } else { `$null }
-Write-Host "ConsentPromptBehaviorAdmin original value: `$orig"
-try {
-    Set-ItemProperty -Path `$key -Name `$name -Value 0 -Type DWord
-    Write-Host 'Lowered UAC prompt for admins (value=0) for this install.'
-    `$fwd = @($forwardLiteral)
-    & pwsh -NoProfile -ExecutionPolicy Bypass -File '$installEsc' -AdminOnly @fwd
-    exit `$LASTEXITCODE
-} finally {
-    if (`$null -ne `$orig) {
-        Set-ItemProperty -Path `$key -Name `$name -Value `$orig -Type DWord
-    } else {
-        Remove-ItemProperty -Path `$key -Name `$name -ErrorAction SilentlyContinue
+    if (-not (Get-Command sudo -ErrorAction SilentlyContinue)) {
+        throw "sudo not found on PATH. Enable Windows sudo (Settings > System > For developers > Enable sudo, mode = Inline) or run this script from an elevated terminal."
     }
-    Write-Host "ConsentPromptBehaviorAdmin restored to: `$orig"
-}
-"@
 
-    $tmp = [IO.Path]::Combine([IO.Path]::GetTempPath(), "unattended-$([guid]::NewGuid().ToString('N')).ps1")
-    Set-Content -Path $tmp -Value $elevated -Encoding UTF8
-    try {
-        if (-not (Get-Command sudo -ErrorAction SilentlyContinue)) {
-            throw "sudo not found on PATH. Enable Windows sudo (Settings > For developers) or run this script from an elevated terminal."
-        }
-        sudo pwsh -NoProfile -ExecutionPolicy Bypass -File $tmp
-        $adminExit = $LASTEXITCODE
-    }
-    finally {
-        Remove-Item -Path $tmp -ErrorAction SilentlyContinue
-    }
+    $sudoArgs = @(
+        'pwsh', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+        '-File', $helper,
+        '-InstallScript', $install
+    )
+    if ($ConsentToLowerUAC) { $sudoArgs += '-LowerUAC' }
+    if ($skipFlat)          { $sudoArgs += @('-Skip', ($skipFlat -join ',')) }
+    if ($onlyFlat)          { $sudoArgs += @('-Only', ($onlyFlat -join ',')) }
+    if ($Plan)              { $sudoArgs += '-Plan' }
+
+    & sudo @sudoArgs
+    $adminExit = $LASTEXITCODE
     if ($adminExit -ne 0) {
         Write-Warning "Admin phase reported $adminExit failed step(s); continuing with user phase."
     }
@@ -109,9 +115,22 @@ try {
 
 if ($AdminOnly) { return }
 
+# ------------------------------------------------------------------
+# Phase 2: user pass
+# ------------------------------------------------------------------
 Write-Host ''
 Write-Host '################################################################'
-Write-Host '# Phase 2: user-context steps (no elevation)'
+if ($Plan) {
+    Write-Host '# Phase 2 (PLAN): user steps'
+} else {
+    Write-Host '# Phase 2: user-context steps (no elevation)'
+}
 Write-Host '################################################################'
-& pwsh -NoProfile -ExecutionPolicy Bypass -File $install -UserOnly @forward
+
+$userArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $install, '-UserOnly')
+if ($skipFlat) { $userArgs += @('-Skip', ($skipFlat -join ',')) }
+if ($onlyFlat) { $userArgs += @('-Only', ($onlyFlat -join ',')) }
+if ($Plan)     { $userArgs += '-Plan' }
+
+& pwsh @userArgs
 exit $LASTEXITCODE
