@@ -129,6 +129,11 @@ Invoke-Step 'install-dsc' -RequiresAdmin {
 Invoke-Step 'dsc-desktop-settings' {
     dsc config set --file "$PSScriptRoot\.configurations\desktop-settings.dsc.yaml"
 }
+Invoke-Step 'refresh-explorer' {
+    # Explorer owns shell/taskbar rendering; restart it so HKCU tweaks apply immediately.
+    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+    Start-Process explorer.exe
+}
 Invoke-Step 'dsc-apps-to-remove' -RequiresAdmin {
     dsc config set --file "$PSScriptRoot\.configurations\apps-to-remove.dsc.yaml"
 }
