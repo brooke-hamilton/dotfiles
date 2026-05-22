@@ -222,17 +222,24 @@ Invoke-Step 'devcontainer-cli' -RequiresAdmin {
     npm install -g @devcontainers/cli
 }
 
-Invoke-Step 'radius-dev-config-clone' {
-    $radiusDevConfigPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'radius-dev-config'
-    if (-not (Test-Path -Path $radiusDevConfigPath)) {
-        git clone https://github.com/brooke-hamilton/radius-dev-config $radiusDevConfigPath
-    } else {
-        Write-Output "Already cloned: $radiusDevConfigPath"
+Invoke-Step 'docker-desktop' -RequiresAdmin {
+    # Pre-install Docker Desktop silently so the radius DSC config doesn't trigger its
+    # interactive configuration dialog. --override passes flags directly to
+    # "Docker Desktop Installer.exe" which supports a fully unattended install.
+    winget install --id Docker.DockerDesktop --source winget --disable-interactivity `
+        --accept-package-agreements --accept-source-agreements `
+        --override "install --quiet --accept-license --backend=wsl-2"
+    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {
+        Write-Warning "winget install Docker.DockerDesktop returned $LASTEXITCODE (continuing)"
     }
 }
 
 Invoke-Step 'radius-dev-env' -RequiresAdmin {
-    $radiusYaml = "$PSScriptRoot\..\radius-dev-config\.configurations\radius.dsc.yaml"
+    $radiusDevConfigPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'radius-dev-config'
+    $radiusYaml = Join-Path -Path $radiusDevConfigPath -ChildPath '.configurations\radius.dsc.yaml'
+    if (-not (Test-Path -Path $radiusDevConfigPath)) {
+        git clone https://github.com/brooke-hamilton/radius-dev-config $radiusDevConfigPath
+    }
     if (-not (Test-Path $radiusYaml)) {
         throw "radius config not found at $radiusYaml"
     }
