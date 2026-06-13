@@ -1,5 +1,0 @@
----
-agent: "workplace-reporter"
----
-
-{{input}}
