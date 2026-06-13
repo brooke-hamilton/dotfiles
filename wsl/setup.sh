@@ -13,13 +13,13 @@ set -euo pipefail
 # ============================================================================
 # Versions — the single place to bump tool versions
 # ============================================================================
-readonly GO_VERSION="1.26.0"
+readonly GO_VERSION="1.26.4"
 readonly NODE_VERSION="24"
 readonly NVM_VERSION="0.40.3"
 readonly KIND_VERSION="0.29.0"
-readonly ORAS_VERSION="1.2.3"
-readonly GOLANGCI_LINT_VERSION="1.64.6"
-readonly DOTNET_VERSION="10.0.100"
+readonly ORAS_VERSION="1.3.2"
+readonly GOLANGCI_LINT_VERSION="2.12.2"
+readonly DOTNET_VERSION="10.0.300"
 
 # ============================================================================
 # Helpers
@@ -85,6 +85,7 @@ ensure_apt_packages() {
         ca-certificates
         gnupg
         lsb-release
+        libicu-dev
     )
     sudo apt-get install -y "${packages[@]}"
 
@@ -159,6 +160,11 @@ ensure_go() {
     echo "Go ${GO_VERSION}"
     echo "============================================================================"
 
+    # Ensure go is discoverable when re-running in a non-login shell. The PATH
+    # entry below is normally only in /etc/profile, which `bash setup.sh` does
+    # not source, so without this the version check always reports "none".
+    export PATH="${PATH}:/usr/local/go/bin"
+
     local current
     current="$(installed_version go version 3)"
     if [[ "${current}" == "${GO_VERSION}" ]]; then
@@ -204,6 +210,14 @@ ensure_go_tools() {
     )
 
     for tool in "${tools[@]}"; do
+        # Skip if already installed; `go install ...@latest` otherwise always
+        # re-resolves and rewrites the binary on every run.
+        local bin_name="${tool##*/}"
+        bin_name="${bin_name%@*}"
+        if command -v "${bin_name}" &>/dev/null; then
+            echo "${bin_name}: already installed"
+            continue
+        fi
         echo "go install ${tool}"
         go install "${tool}"
     done
@@ -263,12 +277,13 @@ ensure_kubectl() {
 
     local latest
     latest="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
+    # Parse the client version deterministically; `kubectl version` text output
+    # is brittle (extra lines, connection warnings) and breaks field matching.
     local current
-    current="$(installed_version kubectl version 3 2>/dev/null || echo "none")"
-    # kubectl version --client prints "Client Version: v1.x.y"
-    current="${current#v}"
+    current="$(kubectl version --client -o json 2>/dev/null \
+        | jq -r '.clientVersion.gitVersion' 2>/dev/null || echo "none")"
 
-    if [[ "v${current}" == "${latest}" ]]; then
+    if [[ "${current}" == "${latest}" ]]; then
         echo "kubectl: ${latest} already installed"
         return
     fi
@@ -426,13 +441,21 @@ ensure_powershell() {
         return
     fi
 
-    local ps_arch="x64"
-    [[ "${ARCH}" == "arm64" ]] && ps_arch="arm64"
+    # PowerShell .deb assets use Debian arch naming (amd64/arm64), e.g.
+    # powershell_7.6.2-1.deb_amd64.deb. Match that suffix and the non-LTS
+    # package (startswith "powershell_") to pick exactly one asset.
+    local deb_arch
+    deb_arch="$(dpkg --print-architecture)"
 
     local ps_url
     ps_url="$(curl -s https://api.github.com/repos/PowerShell/PowerShell/releases/latest \
-        | jq -r ".assets[] | select(.name | contains(\"deb\") and contains(\"${ps_arch}\")) | .browser_download_url" \
+        | jq -r ".assets[] | select(.name | startswith(\"powershell_\") and endswith(\"_${deb_arch}.deb\")) | .browser_download_url" \
         | head -1)"
+
+    if [[ -z "${ps_url}" || "${ps_url}" == "null" ]]; then
+        echo "Error: could not resolve PowerShell download URL from GitHub API" >&2
+        return 1
+    fi
 
     wget -q -O /tmp/powershell.deb "${ps_url}"
     sudo dpkg -i /tmp/powershell.deb || sudo apt-get install -f -y
@@ -470,11 +493,11 @@ ensure_edit() {
     echo "edit: installing ${latest_version} (was: ${current})"
     local arch_edit="x86_64"
     [[ "${ARCH}" == "arm64" ]] && arch_edit="aarch64"
-    local archive="edit-${latest_version}-${arch_edit}-linux-gnu.tar.zst"
+    local archive="edit-${latest_version}-${arch_edit}-linux-gnu.tar.gz"
     local tmpdir
     tmpdir="$(mktemp -d)"
     curl -sSL "https://github.com/microsoft/edit/releases/download/v${latest_version}/${archive}" -o "${tmpdir}/${archive}"
-    tar --use-compress-program=zstd -xf "${tmpdir}/${archive}" -C "${tmpdir}"
+    tar -xzf "${tmpdir}/${archive}" -C "${tmpdir}"
     local binary
     binary="$(find "${tmpdir}" -name "edit" -type f -executable | head -1)"
     sudo cp "${binary}" /usr/local/bin/edit
@@ -591,6 +614,11 @@ main() {
     echo "WSL Setup — $(date)"
     echo "============================================================================"
 
+    # Ensure a writable working directory. Some installers download into the
+    # current directory before moving files into place; cloud-init runs with
+    # cwd=/ which the user cannot write to.
+    cd "${HOME}" 2>/dev/null || cd "$(mktemp -d)"
+
     ensure_apt_packages
     ensure_azure_cli
     ensure_go
@@ -598,7 +626,7 @@ main() {
     ensure_node
     ensure_kubectl
     ensure_helm
-    ensure_kind
+    # ensure_kind
     ensure_k3d
     ensure_oras
     ensure_dotnet

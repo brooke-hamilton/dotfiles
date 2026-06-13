@@ -42,4 +42,4 @@ packages:
 
 runcmd:
   - sudo -u __username__ git clone https://github.com/brooke-hamilton/dotfiles /home/__username__/dotfiles
-  # - sudo -u __username__ bash /home/__username__/dotfiles/wsl/setup.sh
+  - sudo -iu __username__ bash /home/__username__/dotfiles/wsl/setup.sh
