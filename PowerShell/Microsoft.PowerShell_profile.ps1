@@ -126,6 +126,7 @@ if ($IsWindows) {
     }
 
     Set-Alias -Name ll -Value Get-ChildItem
+    Set-Alias -Name docker -Value wslc
     Import-Module "$PSScriptRoot\New-WslFromDevContainer\New-WslFromDevContainer.psm1"
     #Import-Module "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
     Import-Module "C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
