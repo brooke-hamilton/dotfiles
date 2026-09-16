@@ -149,3 +149,12 @@ resources:
       source: "winget"
       acceptAgreements: true
       _exist: true
+
+  - name: install cosign
+    type: Microsoft.WinGet/Package
+    properties:
+      id: "Sigstore.Cosign"
+      source: "winget"
+      acceptAgreements: true
+      _exist: true
+  
