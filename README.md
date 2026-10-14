@@ -68,6 +68,10 @@ A Windows 11 + WSL development environment for working on the
 5. From the Ubuntu shell, run the WSL setup script at
    `/mnt/c/users/<username>/dotfiles/wsl/setup.sh`.
 
+   Setup writes `/etc/sysctl.d/99-radius-local-functional.conf` to persist
+   `fs.inotify.max_user_instances=1024`, applies it immediately, and displays
+   the active value. Re-run setup to apply this to existing instances.
+
 ### Single UAC prompt (opt-in)
 
 Some bundled installers (Visual Studio, Office) re-elevate themselves via

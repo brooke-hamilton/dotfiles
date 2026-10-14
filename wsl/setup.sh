@@ -58,6 +58,20 @@ installed_version() {
 }
 
 # ============================================================================
+# Kernel settings
+# This setting is useful for running multiple k8s instances fs.inotify.max_user_instances=1024
+# ============================================================================
+ensure_sysctl_settings() {
+    echo "Configuring inotify instances"
+
+    local config="/etc/sysctl.d/99-radius-local-functional.conf"
+    printf '%s\n' 'fs.inotify.max_user_instances=1024' |
+        sudo tee "${config}"
+    sudo sysctl -p "${config}"
+    sysctl fs.inotify.max_user_instances
+}
+
+# ============================================================================
 # APT packages & repositories
 # ============================================================================
 ensure_apt_packages() {
@@ -619,6 +633,7 @@ main() {
     # cwd=/ which the user cannot write to.
     cd "${HOME}" 2>/dev/null || cd "$(mktemp -d)"
 
+    ensure_sysctl_settings
     ensure_apt_packages
     ensure_azure_cli
     ensure_go
