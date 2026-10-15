@@ -49,14 +49,13 @@ BeforeAll {
     # Every step name declared by install.ps1, in source order. Keep in sync
     # with the Invoke-Step calls.
     $script:AdminSteps = @(
+        'wslc',
         'winget-configure-enable',
         'winget-upgrade-all',
         'install-dsc',
         'dsc-apps-to-remove',
         'dsc-apps',
         'vs-build-tools',
-        'docker-desktop',
-        'radius-dev-env',
         'remove-desktop-shortcuts'
     )
     $script:UserSteps = @(
@@ -68,9 +67,80 @@ BeforeAll {
         'cmake-path',
         'cargo-zigbuild',
         'rust-targets',
-        'devcontainer-cli',
-        'apt-cacher-ng'
+        'devcontainer-cli'
     )
+}
+
+Describe 'install.ps1 wslc setup' {
+    BeforeAll {
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($script:Install, [ref]$tokens, [ref]$parseErrors)
+        $step = $ast.Find({
+            param($node)
+            $node -is [System.Management.Automation.Language.CommandAst] -and
+                $node.GetCommandName() -eq 'Invoke-Step' -and
+                $node.CommandElements[1].Value -eq 'wslc'
+        }, $true)
+        $script:WslcAction = $step.CommandElements[-1].ScriptBlock.GetScriptBlock()
+
+        function Update-PathEnvVar {}
+        function wslc.exe {}
+    }
+
+    BeforeEach {
+        Mock wsl.exe { $global:LASTEXITCODE = 0 }
+        Mock wslc.exe { $global:LASTEXITCODE = 0 }
+        Mock Update-PathEnvVar {}
+        Mock Get-Command { [pscustomobject]@{ Source = 'wslc.exe' } } -ParameterFilter { $Name -eq 'wslc.exe' }
+    }
+
+    It 'installs WSL without a distro, updates from GitHub, and verifies wslc' {
+        & $script:WslcAction
+
+        Should -Invoke wsl.exe -Exactly 1 -ParameterFilter { ($args -join ' ') -eq '--install --no-distribution' }
+        Should -Invoke wsl.exe -Exactly 1 -ParameterFilter { ($args -join ' ') -eq '--update --web-download' }
+        Should -Invoke Update-PathEnvVar -Exactly 1
+        Should -Invoke wslc.exe -Exactly 1 -ParameterFilter { ($args -join ' ') -eq 'version' }
+    }
+
+    It 'reports an installation failure without attempting an update' {
+        Mock wsl.exe { $global:LASTEXITCODE = 1 }
+
+        { & $script:WslcAction } | Should -Throw '*--install --no-distribution failed*'
+        Should -Invoke wsl.exe -Exactly 1
+        Should -Invoke wslc.exe -Exactly 0
+    }
+
+    It 'reports an update failure without verifying wslc' {
+        Mock wsl.exe { $global:LASTEXITCODE = 1 } -ParameterFilter { $args[0] -eq '--update' }
+
+        { & $script:WslcAction } | Should -Throw '*--update --web-download failed*'
+        Should -Invoke wslc.exe -Exactly 0
+    }
+
+    It 'requires a reboot and retry when <Operation> returns 3010' -ForEach @(
+        @{ Operation = '--install' }
+        @{ Operation = '--update' }
+    ) {
+        Mock wsl.exe { $global:LASTEXITCODE = 3010 } -ParameterFilter { $args[0] -eq $Operation }
+
+        { & $script:WslcAction } | Should -Throw '*requires a restart*'
+        Should -Invoke wslc.exe -Exactly 0
+    }
+
+    It 'reports when wslc is missing after the update' {
+        Mock Get-Command { $null } -ParameterFilter { $Name -eq 'wslc.exe' }
+
+        { & $script:WslcAction } | Should -Throw '*wslc.exe is not available*'
+        Should -Invoke wslc.exe -Exactly 0
+    }
+
+    It 'reports a wslc verification failure' {
+        Mock wslc.exe { $global:LASTEXITCODE = 1 }
+
+        { & $script:WslcAction } | Should -Throw '*wslc version failed*'
+    }
 }
 
 Describe 'install.ps1 plan mode' {
@@ -78,6 +148,30 @@ Describe 'install.ps1 plan mode' {
     It 'announces PLAN mode' {
         $out = Invoke-PlanForTest
         $out | Should -Match 'PLAN mode: no system changes will be made\.'
+    }
+
+    It 'does not include Windows Docker or external Radius configuration steps' {
+        $out = Invoke-PlanForTest
+        $out | Should -Not -Match 'docker-desktop|apt-cacher-ng|radius-dev-env'
+    }
+
+    It 'retains the apt-cacher-ng function without invoking it' {
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($script:Install, [ref]$tokens, [ref]$parseErrors)
+        $definitions = $ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                $node.Name -eq 'Start-AptCacherNg'
+        }, $true)
+        $calls = $ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.CommandAst] -and
+                $node.GetCommandName() -eq 'Start-AptCacherNg'
+        }, $true)
+
+        $definitions.Count | Should -Be 1
+        $calls.Count | Should -Be 0
     }
 
     It 'plans every non-skipped step exactly once' {

@@ -13,9 +13,8 @@ set -euo pipefail
 # ============================================================================
 # Versions — the single place to bump tool versions
 # ============================================================================
-readonly GO_VERSION="1.26.4"
-readonly NODE_VERSION="24"
-readonly NVM_VERSION="0.40.3"
+readonly GO_VERSION="1.27.2"
+readonly NVM_INSTALL_VERSION="0.40.3"
 readonly KIND_VERSION="0.29.0"
 readonly ORAS_VERSION="1.3.2"
 readonly GOLANGCI_LINT_VERSION="2.12.2"
@@ -26,6 +25,33 @@ readonly DOTNET_VERSION="10.0.300"
 # ============================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
+readonly WINDOWS_INTEROP_PATH="${PATH}"
+
+use_linux_path() {
+    local entry resolved windows_path
+    local -a entries linux_entries=()
+    IFS=: read -r -a entries <<<"${PATH}"
+    for entry in "${entries[@]}"; do
+        [[ -n "${entry}" && -d "${entry}" ]] || continue
+        resolved="$(readlink -f "${entry}")"
+        windows_path="$(wslpath -w "${resolved}")"
+        if [[ "${windows_path}" =~ ^[A-Za-z]:\\ ]]; then
+            echo "Ignoring Windows tool directory: ${entry}"
+            continue
+        fi
+        linux_entries+=("${entry}")
+    done
+    if [[ ${#linux_entries[@]} == 0 ]]; then
+        echo "Error: no Linux tool directories remain on PATH." >&2
+        return 1
+    fi
+    PATH="$(
+        IFS=:
+        echo "${linux_entries[*]}"
+    )"
+    export PATH
+    hash -r
+}
 
 # Detect architecture once
 detect_arch() {
@@ -55,6 +81,15 @@ installed_version() {
         return
     fi
     ${cmd} ${version_flag} 2>/dev/null | head -n1 | awk "{print \$${awk_field}}" | sed 's/^v//'
+}
+
+is_nvm_command() {
+    local command_path resolved_path
+    command_path="$(type -P "${1}")" || return 1
+    resolved_path="$(readlink -f "${command_path}")" || return 1
+    [[ -n "${NVM_BIN:-}" &&
+        "${command_path}" == "${NVM_BIN}/"* &&
+        "${resolved_path}" == "${NVM_BIN%/bin}/"* ]]
 }
 
 # ============================================================================
@@ -255,29 +290,52 @@ ensure_go_tools() {
 # ============================================================================
 ensure_node() {
     echo "============================================================================"
-    echo "Node.js ${NODE_VERSION} (via nvm ${NVM_VERSION})"
+    echo "Node.js LTS (via nvm ${NVM_INSTALL_VERSION})"
     echo "============================================================================"
 
     export NVM_DIR="${HOME}/.nvm"
 
     # Install or update nvm
     if [[ ! -s "${NVM_DIR}/nvm.sh" ]]; then
-        echo "nvm: installing ${NVM_VERSION}"
-        curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" | bash
+        echo "nvm: installing ${NVM_INSTALL_VERSION}"
+        curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_INSTALL_VERSION}/install.sh" | bash
     fi
 
     # shellcheck disable=SC1091
-    \. "${NVM_DIR}/nvm.sh"
+    \. "${NVM_DIR}/nvm.sh" --no-use
 
-    # Install desired Node version if not present
-    if ! nvm ls "${NODE_VERSION}" &>/dev/null; then
-        echo "node: installing ${NODE_VERSION}"
-        nvm install "${NODE_VERSION}"
-    else
-        echo "node: ${NODE_VERSION} already installed"
+    nvm install --lts
+    nvm alias default 'lts/*'
+    # An explicit alias avoids nvm's unset PROVIDED_VERSION with --lts.
+    nvm use 'lts/*'
+    hash -r
+
+    local tool
+    for tool in node npm; do
+        if ! is_nvm_command "${tool}"; then
+            echo "Error: ${tool} is not from the active Linux nvm install." >&2
+            return 1
+        fi
+    done
+    if [[ "$(node -p 'process.platform')" != linux ]]; then
+        echo "Error: the active Node.js runtime is not Linux." >&2
+        return 1
+    fi
+    if [[ "$(npm prefix -g)" != "${NVM_BIN%/bin}" ]]; then
+        echo "Error: npm's global prefix is outside the active nvm install." >&2
+        echo "Remove conflicting npm prefix settings before retrying." >&2
+        return 1
     fi
 
-    npm install -g typescript autorest oav
+    npm install -g pnpm typescript autorest oav
+    hash -r
+    if ! is_nvm_command pnpm; then
+        echo "Error: pnpm is not from the active Linux nvm install." >&2
+        return 1
+    fi
+    echo "node: $(node --version)"
+    echo "npm: $(npm --version)"
+    echo "pnpm: $(pnpm --version)"
     echo "Node.js done"
 }
 
@@ -528,13 +586,23 @@ ensure_copilot_cli() {
     echo "GitHub Copilot CLI"
     echo "============================================================================"
 
-    if command -v copilot &>/dev/null; then
-        echo "copilot: already installed ($(copilot --version 2>/dev/null))"
+    if ! is_nvm_command node || ! is_nvm_command npm; then
+        echo "Error: run ensure_node before installing Copilot CLI." >&2
+        return 1
+    fi
+
+    if is_nvm_command copilot && npm ls -g --depth=0 @github/copilot; then
+        echo "copilot: already installed ($(copilot --version))"
         return
     fi
 
-    curl -fsSL https://gh.io/copilot-install | bash
-    echo "copilot: $(copilot --version 2>/dev/null)"
+    npm install -g @github/copilot
+    hash -r
+    if ! is_nvm_command copilot; then
+        echo "Error: copilot is not from the active Linux nvm install." >&2
+        return 1
+    fi
+    echo "copilot: $(copilot --version)"
 }
 
 # ============================================================================
@@ -563,7 +631,8 @@ ensure_gitconfig() {
     echo "============================================================================"
 
     local onedrive_win
-    onedrive_win="$(powershell.exe -NoProfile -Command 'Write-Host -NoNewline $env:ONEDRIVE' 2>/dev/null | tr -d '\r' || true)"
+    # shellcheck disable=SC2016
+    onedrive_win="$(PATH="${WINDOWS_INTEROP_PATH}" powershell.exe -NoProfile -Command 'Write-Host -NoNewline $env:ONEDRIVE' 2>/dev/null | tr -d '\r' || true)"
     if [[ -z "${onedrive_win}" ]]; then
         echo "gitconfig: skipped (OneDrive path not available)"
         return
@@ -617,6 +686,13 @@ ensure_bashrc() {
     # shellcheck disable=SC2016
     add_to_bashrc '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"'
 
+    # nvm can preserve an existing PATH position behind Windows tools.
+    # shellcheck disable=SC2016
+    local node_path_line='[[ -z "${NVM_BIN:-}" || "$PATH" == "$NVM_BIN:"* ]]'
+    # shellcheck disable=SC2016
+    node_path_line+=' || export PATH="$NVM_BIN:$PATH"'
+    add_to_bashrc "${node_path_line}"
+
     echo "Bashrc done"
 }
 
@@ -627,6 +703,8 @@ main() {
     echo "============================================================================"
     echo "WSL Setup — $(date)"
     echo "============================================================================"
+
+    use_linux_path
 
     # Ensure a writable working directory. Some installers download into the
     # current directory before moving files into place; cloud-init runs with
@@ -658,4 +736,6 @@ main() {
     echo "============================================================================"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

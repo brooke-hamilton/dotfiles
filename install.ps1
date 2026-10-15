@@ -5,10 +5,10 @@
 .DESCRIPTION
     A small step runner around three concerns:
 
-      1. A handful of imperative bootstrapping calls (winget feature enable,
+      1. A handful of imperative bootstrapping calls (WSL with wslc, winget feature enable,
          install Microsoft.DSC, install packages that require custom
          installer switches winget DSC v3 cannot express - Visual Studio
-         Build Tools, Docker Desktop).
+         Build Tools).
       2. Declarative state applied via DSC v3 yaml documents under
          .configurations\ (apps, apps-to-remove, desktop-settings).
       3. Per-user setup that depends on the above (rustup targets, cargo
@@ -79,6 +79,36 @@ function Update-PathEnvVar {
     $machine = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
     $user    = [System.Environment]::GetEnvironmentVariable('Path', 'User')
     $env:Path = ($machine, $user | Where-Object { $_ }) -join ';'
+}
+
+function Start-AptCacherNg {
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        Write-Warning 'docker not on PATH; skipping apt-cacher-ng container start.'
+        return
+    }
+    $deadline = (Get-Date).AddMinutes(2)
+    $ready = $false
+    while ((Get-Date) -lt $deadline) {
+        & docker info *> $null
+        if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+        Start-Sleep -Seconds 5
+    }
+    if (-not $ready) {
+        Write-Warning 'Docker engine not responding after 2 minutes; skipping apt-cacher-ng. Retry after the container engine has started.'
+        return
+    }
+    $existing = docker ps -a --filter name=^apt-cacher-ng$ --format '{{.Names}}'
+    if ($LASTEXITCODE -ne 0) {
+        throw "docker ps failed with exit code $LASTEXITCODE."
+    }
+    if ($existing -eq 'apt-cacher-ng') {
+        Write-Output 'apt-cacher-ng container already exists; skipping.'
+        return
+    }
+    docker run --detach --name apt-cacher-ng --publish 3142:3142 --restart=unless-stopped sameersbn/apt-cacher-ng
+    if ($LASTEXITCODE -ne 0) {
+        throw "docker run apt-cacher-ng failed with exit code $LASTEXITCODE."
+    }
 }
 
 function Invoke-Step {
@@ -167,6 +197,35 @@ function Invoke-Step {
 # Admin pass: package management bootstrap + declarative system state
 # ==================================================================
 
+Invoke-Step 'wslc' -RequiresAdmin {
+    & wsl.exe --install --no-distribution
+    if ($LASTEXITCODE -eq 3010) {
+        throw 'WSL installation requires a restart. Reboot, then re-run install.ps1 -Only wslc from an elevated terminal.'
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "wsl --install --no-distribution failed with exit code $LASTEXITCODE."
+    }
+
+    # wslc ships with WSL 2.9.3+; WinGet may offer an older WSL package.
+    & wsl.exe --update --web-download
+    if ($LASTEXITCODE -eq 3010) {
+        throw 'WSL update requires a restart. Reboot, then re-run install.ps1 -Only wslc from an elevated terminal.'
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "wsl --update --web-download failed with exit code $LASTEXITCODE."
+    }
+
+    Update-PathEnvVar
+    $wslc = Get-Command wslc.exe -CommandType Application -ErrorAction SilentlyContinue
+    if (-not $wslc) {
+        throw 'wslc.exe is not available after updating WSL. WSL 2.9.3 or newer is required; reboot and re-run install.ps1 -Only wslc from an elevated terminal.'
+    }
+    & $wslc.Source version
+    if ($LASTEXITCODE -ne 0) {
+        throw "wslc version failed with exit code $LASTEXITCODE."
+    }
+}
+
 Invoke-Step 'winget-configure-enable' -RequiresAdmin {
     # --enable must be passed alone; winget rejects it combined with other args.
     winget configure --enable
@@ -213,38 +272,6 @@ Invoke-Step 'vs-build-tools' -RequiresAdmin {
         Write-Warning "winget install BuildTools returned $LASTEXITCODE (continuing)"
     }
     Update-PathEnvVar
-}
-
-# Docker Desktop - imperative for the same reason as vs-build-tools. Pre-installed
-# silently here so the radius-dev-env step doesn't trigger its interactive setup.
-Invoke-Step 'docker-desktop' -RequiresAdmin {
-    winget install --id Docker.DockerDesktop --source winget --disable-interactivity `
-        --accept-package-agreements --accept-source-agreements `
-        --override "install --quiet --accept-license --backend=wsl-2"
-    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {
-        Write-Warning "winget install Docker.DockerDesktop returned $LASTEXITCODE (continuing)"
-    }
-}
-
-Invoke-Step 'radius-dev-env' -RequiresAdmin {
-    $radiusDevConfigPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath 'radius-dev-config'
-    $radiusYaml = Join-Path -Path $radiusDevConfigPath -ChildPath '.configurations\radius.dsc.yaml'
-    if (-not (Test-Path -Path $radiusDevConfigPath)) {
-        # NOTE: side effect on the parent of $PSScriptRoot. Documented in README.
-        git clone https://github.com/brooke-hamilton/radius-dev-config $radiusDevConfigPath
-    }
-    if (-not (Test-Path $radiusYaml)) {
-        throw "radius config not found at $radiusYaml"
-    }
-    # The radius config is a winget configuration document (not DSC v3 schema),
-    # so use `winget configure --file`, not `dsc config set`. Stream + capture
-    # output so we can detect winget's silent "Extended features are not enabled"
-    # bail-out which exits 0 but applies nothing.
-    $output = & winget configure --file $radiusYaml --accept-configuration-agreements --disable-interactivity 2>&1 |
-        ForEach-Object { Write-Host $_; $_ }
-    if ($output -match 'Extended features are not enabled') {
-        throw "winget configure refused to run: extended features not enabled. Run 'winget configure --enable' (or the winget-configure-enable step) and retry."
-    }
 }
 
 Invoke-Step 'remove-desktop-shortcuts' -RequiresAdmin {
@@ -342,32 +369,6 @@ Invoke-Step 'devcontainer-cli' {
         return
     }
     npm install -g @devcontainers/cli
-}
-
-Invoke-Step 'apt-cacher-ng' {
-    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-        Write-Warning 'docker not on PATH; skipping apt-cacher-ng container start.'
-        return
-    }
-    # Docker Desktop was just installed in the admin pass; the engine may
-    # still be starting. Probe up to ~2 minutes.
-    $deadline = (Get-Date).AddMinutes(2)
-    $ready = $false
-    while ((Get-Date) -lt $deadline) {
-        & docker info *> $null
-        if ($LASTEXITCODE -eq 0) { $ready = $true; break }
-        Start-Sleep -Seconds 5
-    }
-    if (-not $ready) {
-        Write-Warning 'Docker engine not responding after 2 minutes; skipping apt-cacher-ng. Re-run "install.ps1 -Only apt-cacher-ng" after Docker Desktop has started.'
-        return
-    }
-    $existing = docker ps -a --filter name=^apt-cacher-ng$ --format '{{.Names}}'
-    if ($existing -eq 'apt-cacher-ng') {
-        Write-Output 'apt-cacher-ng container already exists; skipping.'
-        return
-    }
-    docker run --detach --name apt-cacher-ng --publish 3142:3142 --restart=unless-stopped sameersbn/apt-cacher-ng
 }
 
 # ==================================================================

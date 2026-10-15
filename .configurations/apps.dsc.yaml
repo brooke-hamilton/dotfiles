@@ -10,7 +10,7 @@ resources:
   # git-ssh step (and other dotfile symlinks) can run in the user pass.
   # HKLM requires admin -- this whole document is applied in the admin pass.
   # ----------------------------------------------------------------
-  - name: enable developer mode (unprivileged symlinks)
+  - name: enable developer mode unprivileged symlinks
     type: Microsoft.Windows/Registry
     properties:
       keyPath: HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock
