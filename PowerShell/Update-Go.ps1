@@ -23,6 +23,119 @@ $tools = @(
     'honnef.co/go/tools/cmd/staticcheck@latest'
 )
 
+function Stop-GoProcess {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [string[]] $Paths
+    )
+
+    $fullPaths = @($Paths | ForEach-Object {
+        [System.IO.Path]::GetFullPath(
+            [Environment]::ExpandEnvironmentVariables($_)
+        ).TrimEnd('\')
+    })
+
+    foreach ($process in Get-Process -ErrorAction Stop) {
+        if (-not $process.Path) {
+            continue
+        }
+
+        $matchesPath = $false
+        foreach ($path in $fullPaths) {
+            if ($process.Path.Equals($path, [System.StringComparison]::OrdinalIgnoreCase) -or
+                $process.Path.StartsWith("$path\", [System.StringComparison]::OrdinalIgnoreCase)) {
+                $matchesPath = $true
+                break
+            }
+        }
+
+        if ($matchesPath -and $PSCmdlet.ShouldProcess(
+            "$($process.Path) (PID $($process.Id))", 'Stop process before removing Go files'
+        )) {
+            Write-Host "Stopping $($process.Path) (PID $($process.Id))..."
+            try {
+                Stop-Process -Id $process.Id -Force -ErrorAction Stop
+                Wait-Process -InputObject $process -Timeout 10 -ErrorAction Stop
+            }
+            catch {
+                throw "Could not stop $($process.Path) (PID $($process.Id)). Close editors and other programs using Go, then rerun this script. $($_.Exception.Message)"
+            }
+        }
+    }
+}
+
+function Move-GoToolCache {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet('gopls', 'goimports')]
+        [string] $Name,
+
+        [Parameter(Mandatory)]
+        [string] $Destination
+    )
+
+    $source = Join-Path $env:LOCALAPPDATA $Name
+    $destinationPath = [System.IO.Path]::GetFullPath(
+        [Environment]::ExpandEnvironmentVariables($Destination)
+    ).TrimEnd('\')
+    if ($destinationPath.Equals($source, [System.StringComparison]::OrdinalIgnoreCase) -or
+        $destinationPath.StartsWith("$source\", [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "The $Name cache destination must be outside $source."
+    }
+
+    $sourceJunction = $null
+    $sourceExists = Test-Path -LiteralPath $source -ErrorAction Stop
+    if ($sourceExists) {
+        $item = Get-Item -LiteralPath $source -Force -ErrorAction Stop
+        if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+            if ($item.LinkType -eq 'Junction' -and
+                $destinationPath.Equals([string] $item.Target, [System.StringComparison]::OrdinalIgnoreCase) -and
+                (Test-Path -LiteralPath $destinationPath -PathType Container -ErrorAction Stop)) {
+                if ($Name -eq 'goimports') {
+                    return
+                }
+                $sourceJunction = $item
+                $sourceExists = $false
+            }
+            else {
+                throw "$source already links to another location or has a missing target. Resolve it before moving the cache."
+            }
+        }
+        if (-not $item.PSIsContainer) {
+            throw "$source is not a cache directory."
+        }
+        if ($sourceExists -and (Test-Path -LiteralPath $destinationPath -ErrorAction Stop)) {
+            throw "Both $source and $destinationPath exist. Resolve the conflicting cache directories before retrying."
+        }
+    }
+
+    if ($PSCmdlet.ShouldProcess($source, "Move $Name cache to $destinationPath")) {
+        Write-Host "Redirecting $source to $destinationPath..."
+        New-Item -ItemType Directory -Path $destinationPath -Force -ErrorAction Stop | Out-Null
+        if ($sourceJunction) {
+            $sourceJunction.Delete()
+        }
+        if ($sourceExists) {
+            # Robocopy supports cross-volume moves; Move-Item cannot move directories between drives.
+            $copyOutput = & robocopy.exe $source $destinationPath /E /MOVE /COPY:DAT /DCOPY:DAT /XJ /R:1 /W:1 /NFL /NDL /NP
+            if ($LASTEXITCODE -ge 8) {
+                throw "Failed to move $source to $destinationPath (robocopy exit code $LASTEXITCODE). Both locations may contain cache files. $($copyOutput -join [Environment]::NewLine)"
+            }
+            if (Test-Path -LiteralPath $source -ErrorAction Stop) {
+                if (@(Get-ChildItem -LiteralPath $source -Force -ErrorAction Stop).Count -gt 0) {
+                    throw "Files remain in $source after moving the cache. Resolve them before creating the junction."
+                }
+                Remove-Item -LiteralPath $source -Force -ErrorAction Stop
+            }
+        }
+        if ($Name -eq 'goimports') {
+            New-Item -ItemType Junction -Path $source -Target $destinationPath -ErrorAction Stop | Out-Null
+        }
+    }
+}
+
 function Remove-GoPath {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -58,6 +171,22 @@ function Remove-GoPath {
         if ($PSCmdlet.ShouldProcess($fullPath, 'Remove Go installation or cache path')) {
             Remove-Item -LiteralPath $fullPath -Recurse -Force
         }
+    }
+}
+
+function Clear-GoToolCache {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path
+    )
+
+    if ($PSCmdlet.ShouldProcess($Path, 'Clear Go tool cache contents')) {
+        Write-Host "Clearing cache contents in $Path..."
+        Get-ChildItem -LiteralPath $Path -Force -ErrorAction Stop |
+            ForEach-Object {
+                Remove-GoPath -Path $_.FullName -ErrorAction Stop
+            }
     }
 }
 
@@ -209,17 +338,29 @@ try {
             }
     }
 
-    foreach ($path in $pathsToRemove) {
-        Remove-GoPath -Path $path
-    }
-
     $versionedSdkDirectory = Join-Path $HOME 'sdk'
     if (Test-Path -LiteralPath $versionedSdkDirectory) {
         Get-ChildItem -LiteralPath $versionedSdkDirectory -Directory -Force |
             Where-Object { $_.Name -match '^go\d' } |
             ForEach-Object {
-                Remove-GoPath -Path $_.FullName
+                [void] $pathsToRemove.Add($_.FullName)
             }
+    }
+
+    Stop-GoProcess -Paths @($pathsToRemove)
+
+    $toolCacheRoot = Split-Path -Parent $SdkRoot
+    Move-GoToolCache -Name gopls -Destination (Join-Path $toolCacheRoot 'gopls')
+    $env:GOPLSCACHE = $toolCacheRoot
+    [Environment]::SetEnvironmentVariable('GOPLSCACHE', $toolCacheRoot, 'User')
+    Move-GoToolCache -Name goimports -Destination (Join-Path $toolCacheRoot 'goimports')
+
+    foreach ($name in @('gopls', 'goimports')) {
+        Clear-GoToolCache -Path (Join-Path $toolCacheRoot $name)
+    }
+
+    foreach ($path in $pathsToRemove) {
+        Remove-GoPath -Path $path
     }
 
     Get-ChildItem -LiteralPath $env:TEMP -Directory -Force -ErrorAction SilentlyContinue |
