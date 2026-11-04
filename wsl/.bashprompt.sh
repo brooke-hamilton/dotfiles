@@ -47,5 +47,5 @@ __prompt_command() {
         fi
     fi
 }
-PROMPT_COMMAND=__prompt_command
+PROMPT_COMMAND+=(__prompt_command)
 export PROMPT_DIRTRIM=4
