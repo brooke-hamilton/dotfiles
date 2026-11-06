@@ -11,9 +11,9 @@
 set -euo pipefail
 
 # ============================================================================
-# Versions — the single place to bump tool versions
+# Versions — Go uses the latest stable release; other tools are pinned here
 # ============================================================================
-readonly GO_VERSION="1.27.2"
+readonly GO_ROOT="/usr/local/go"
 readonly NVM_INSTALL_VERSION="0.40.3"
 readonly KIND_VERSION="0.29.0"
 readonly ORAS_VERSION="1.3.2"
@@ -204,29 +204,140 @@ ensure_azure_cli() {
 # ============================================================================
 # Go
 # ============================================================================
-ensure_go() {
+latest_go_release() {
+    local url="https://go.dev/dl/?mode=json"
+    echo "Reading latest stable Go release from ${url}" >&2
+    curl --fail --show-error --silent --location "${url}" |
+        jq -er --arg arch "${ARCH}" '
+            if type != "array" then error("Invalid Go release metadata") end |
+            [.[] | select(.stable == true)] |
+            if length == 0 then error("No stable Go release found") end |
+            map(if (.version |
+                test("^go1\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))
+                then . else error("Invalid stable Go version") end) |
+            sort_by(.version | ltrimstr("go") | split(".") | map(tonumber)) |
+            last |
+            .version as $version |
+            [.files[] | select(.os == "linux" and .arch == $arch
+                and .kind == "archive")] |
+            if length != 1 then error("Linux Go archive not found") end |
+            .[0] |
+            if .filename != ($version + ".linux-" + $arch + ".tar.gz")
+                or (.sha256 | test("^[0-9a-f]{64}$") | not)
+            then error("Invalid Go archive metadata") end |
+            [($version | ltrimstr("go")), .filename, .sha256] | @tsv
+        '
+}
+
+go_sdk_version() {
+    local sdk="${1}" output
+    output="$(GOTOOLCHAIN=local "${sdk}/bin/go" version)"
+    if [[ ! "${output}" =~ ^go\ version\ go([0-9.]+)\ linux/${ARCH}$ ]]; then
+        echo "Error: unexpected Linux Go SDK version: ${output}" >&2
+        return 1
+    fi
+    printf '%s\n' "${BASH_REMATCH[1]}"
+}
+
+verify_go() {
+    local version="${1}" current selected resolved windows_path
+    if [[ ! -x "${GO_ROOT}/bin/go" || ! -x "${GO_ROOT}/bin/gofmt" ]]; then
+        echo "Error: Go SDK missing at ${GO_ROOT}; run --only go." >&2
+        return 1
+    fi
+    current="$(go_sdk_version "${GO_ROOT}")"
+    if [[ "${current}" != "${version}" ]]; then
+        echo "Error: ${GO_ROOT} has Go ${current}; latest stable is ${version}." >&2
+        return 1
+    fi
+    if [[ "$(type -t go || true)" != file ]]; then
+        echo "Error: PATH must select a Go executable, not an override." >&2
+        return 1
+    fi
+    selected="$(command -v go)"
+    resolved="$(readlink -f "${selected}")"
+    windows_path="$(wslpath -w "${resolved}")"
+    if [[ "${windows_path}" =~ ^[A-Za-z]:\\ ]]; then
+        echo "Error: PATH selects Windows Go: ${selected}" >&2
+        return 1
+    fi
+    current="$(go_sdk_version "$(dirname "$(dirname "${resolved}")")")"
+    if [[ "${current}" != "${version}" ]]; then
+        echo "Error: ${selected} shadows ${GO_ROOT} with Go ${current}." >&2
+        echo "Adjust your PATH or explicitly update that SDK; it was preserved." >&2
+        return 1
+    fi
+    if [[ "$(type -t gofmt || true)" != file ||
+        "$(readlink -f "$(command -v gofmt)")" != \
+        "$(dirname "${resolved}")/gofmt" ]]; then
+        echo "Error: go and gofmt must select the same Linux SDK." >&2
+        return 1
+    fi
+    echo "Go ${version}: SDK ${GO_ROOT}; PATH selects ${selected}"
+    if [[ "${resolved}" != "${GO_ROOT}/bin/go" ]]; then
+        echo "An existing matching user-selected SDK takes precedence."
+    fi
+}
+
+ensure_go_sdk() (
+    local version="${1}" tarball="${2}" checksum="${3}"
+    local current="none" tmpdir="" backupdir=""
+    trap 'if [[ -n "${tmpdir}" ]]; then
+        rm -rf -- "${tmpdir}"
+    fi
+    if [[ -n "${backupdir}" ]]; then
+        if [[ -d "${backupdir}/previous-go" && ! -e "${GO_ROOT}" ]]; then
+            if ! sudo mv "${backupdir}/previous-go" "${GO_ROOT}"; then
+                echo "Error: restore the saved SDK from ${backupdir}." >&2
+                exit 1
+            fi
+        fi
+        sudo rm -rf -- "${backupdir}"
+    fi' EXIT
+
     echo "============================================================================"
-    echo "Go ${GO_VERSION}"
+    echo "Go ${version} (latest stable)"
     echo "============================================================================"
 
-    # Ensure go is discoverable when re-running in a non-login shell. The PATH
-    # entry below is normally only in /etc/profile, which `bash setup.sh` does
-    # not source, so without this the version check always reports "none".
-    export PATH="${PATH}:/usr/local/go/bin"
-
-    local current
-    current="$(installed_version go version 3)"
-    if [[ "${current}" == "${GO_VERSION}" ]]; then
-        echo "go: ${GO_VERSION} already installed"
-        return
+    if [[ -L "${GO_ROOT}" || ( -e "${GO_ROOT}" && ! -d "${GO_ROOT}" ) ]]; then
+        echo "Error: refusing to replace a custom SDK path: ${GO_ROOT}" >&2
+        return 1
+    fi
+    if [[ -x "${GO_ROOT}/bin/go" ]]; then
+        current="$(go_sdk_version "${GO_ROOT}")"
     fi
 
-    echo "go: installing ${GO_VERSION} (was: ${current})"
-    local tarball="go${GO_VERSION}.linux-${ARCH}.tar.gz"
-    wget -q "https://golang.org/dl/${tarball}"
-    sudo rm -rf /usr/local/go
-    sudo tar -C /usr/local -xzf "${tarball}"
-    rm -f "${tarball}"
+    if [[ "${current}" != "${version}" ||
+        ! -x "${GO_ROOT}/bin/gofmt" ]]; then
+        echo "go: installing ${version} (was: ${current})"
+        tmpdir="$(mktemp -d)"
+        local archive_url="https://go.dev/dl/${tarball}"
+        echo "Downloading ${archive_url}"
+        curl --fail --show-error --silent --location "${archive_url}" \
+            -o "${tmpdir}/${tarball}"
+        printf '%s  %s\n' "${checksum}" "${tmpdir}/${tarball}" |
+            sha256sum --check -
+        tar -C "${tmpdir}" -xzf "${tmpdir}/${tarball}"
+        if [[ ! -x "${tmpdir}/go/bin/gofmt" ||
+            "$(go_sdk_version "${tmpdir}/go")" != "${version}" ]]; then
+            echo "Error: downloaded SDK does not match release metadata." >&2
+            return 1
+        fi
+        backupdir="$(sudo mktemp -d "${GO_ROOT}.stage.XXXXXX")"
+        sudo mv "${tmpdir}/go" "${backupdir}/new-go"
+        sudo chown -R root:root "${backupdir}/new-go"
+        if [[ -d "${GO_ROOT}" ]]; then
+            sudo mv "${GO_ROOT}" "${backupdir}/previous-go"
+        fi
+        sudo mv "${backupdir}/new-go" "${GO_ROOT}"
+    else
+        echo "go: ${version} already installed"
+    fi
+)
+
+ensure_go() {
+    local version="${1}"
+    ensure_go_sdk "${@}"
 
     # Ensure PATH includes go
     if ! grep -q '/usr/local/go/bin' /etc/profile 2>/dev/null; then
@@ -234,7 +345,8 @@ ensure_go() {
         echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee -a /etc/profile >/dev/null
     fi
     export PATH="${PATH}:/usr/local/go/bin"
-    echo "go: $(go version)"
+    hash -r
+    verify_go "${version}"
 }
 
 ensure_go_tools() {
@@ -243,7 +355,7 @@ ensure_go_tools() {
     echo "============================================================================"
 
     local gopath
-    gopath="$(go env GOPATH 2>/dev/null || echo "${HOME}/go")"
+    gopath="$(go env GOPATH)"
     export PATH="${PATH}:/usr/local/go/bin:${gopath}/bin"
 
     local -a tools=(
@@ -700,6 +812,49 @@ ensure_bashrc() {
 # Main
 # ============================================================================
 main() {
+    local mode="all" release version tarball checksum
+    while [[ $# -gt 0 ]]; do
+        case "${1}" in
+            --only)
+                if [[ $# -lt 2 || "${2}" != go || "${mode}" != all ]]; then
+                    echo "Error: use --only go, without --verify-go." >&2
+                    return 1
+                fi
+                mode="go"
+                shift 2
+                ;;
+            --verify-go)
+                if [[ "${mode}" != all ]]; then
+                    echo "Error: --verify-go cannot be combined with --only." >&2
+                    return 1
+                fi
+                mode="verify"
+                shift
+                ;;
+            --help)
+                echo "Usage: bash setup.sh [--only go | --verify-go]"
+                return
+                ;;
+            *)
+                echo "Error: unknown setup option: ${1}" >&2
+                return 1
+                ;;
+        esac
+    done
+    if [[ "${mode}" != all ]]; then
+        release="$(latest_go_release)"
+        IFS=$'\t' read -r version tarball checksum <<<"${release}"
+    fi
+    if [[ "${mode}" == verify ]]; then
+        verify_go "${version}"
+        return
+    fi
+    if [[ "${mode}" == go ]]; then
+        use_linux_path
+        ensure_go "${version}" "${tarball}" "${checksum}"
+        return
+    fi
+
     echo "============================================================================"
     echo "WSL Setup — $(date)"
     echo "============================================================================"
@@ -713,8 +868,10 @@ main() {
 
     ensure_sysctl_settings
     ensure_apt_packages
+    release="$(latest_go_release)"
+    IFS=$'\t' read -r version tarball checksum <<<"${release}"
     ensure_azure_cli
-    ensure_go
+    ensure_go "${version}" "${tarball}" "${checksum}"
     ensure_go_tools
     ensure_node
     ensure_kubectl

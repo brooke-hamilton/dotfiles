@@ -68,6 +68,47 @@ A Windows 11 + WSL development environment for working on the
 
    Run [wsl/setup.sh](wsl/setup.sh) as your regular WSL user, without `sudo`; it elevates individual operations as needed. During setup it removes Windows-backed directories from its process PATH so inherited Windows tools cannot satisfy installation checks, while preserving explicit Windows integrations such as reading OneDrive settings. It installs and activates the latest Node.js LTS through Linux nvm, sets it as the default for new shells, and uses its npm to install pnpm and `@github/copilot`. It verifies that Node, npm, pnpm, and Copilot resolve inside the active Linux nvm installation. Bash startup explicitly puts the active nvm bin directory first, even when nvm preserves an older PATH ordering. After setup, open a new shell or run `source ~/.bashrc` to apply this to your terminal; a child setup process cannot change its parent shell's PATH. The setup-only PATH filtering does not change WSL's global Windows interoperability settings.
 
+### Go inside WSL
+
+[wsl/setup.sh](wsl/setup.sh) resolves the latest stable Go release from the
+[official Go release metadata](https://go.dev/dl/?mode=json) each time it runs.
+It excludes beta and release-candidate versions and selects the Linux archive
+for the distro's architecture. Go is installed system-wide at `/usr/local/go`;
+there is no fixed patch version or dependency on a Radius checkout.
+
+To update only Go, without APT upgrades or installation of developer tools:
+
+```bash
+bash ~/dotfiles/wsl/setup.sh --only go
+```
+
+To check the existing SDK and the Go selected by your current PATH:
+
+```bash
+bash ~/dotfiles/wsl/setup.sh --verify-go
+```
+
+Verification reads current release metadata over HTTPS but does not install
+anything or change PATH, startup files, or Go settings. Both modes require
+existing `curl` and `jq`; installation also requires `tar`, `sha256sum`, and
+`sudo`. Metadata and download failures are errors, not a fallback to a pinned
+or cached version.
+
+Setup checks the base SDK with `GOTOOLCHAIN=local`, so automatic project
+toolchain selection cannot hide an older installation. Before replacing it,
+setup verifies the publisher's SHA-256 checksum and the extracted SDK version,
+stages the replacement beside the existing SDK, and restores the old SDK if
+promotion fails. A repeat run skips the archive download when that version is
+already installed and ensures the existing login PATH entry is present.
+
+Existing user-local SDKs, symlinks, and `~/.profile` are preserved. If another
+SDK shadows `/usr/local/go`, verification accepts it only when its base version
+matches the latest stable release and `go` and `gofmt` select the same Linux
+SDK. Otherwise it reports the conflicting path for explicit repair; it does
+not overwrite the user's SDK or reorder that override. Setup does not persist
+`GOTOOLCHAIN`, `GOPROXY`, or `GOSUMDB`, write `go env -w` settings, link into the
+module cache, or warm project caches. Windows Go is not needed for WSL.
+
 ### Optional Docker Engine inside WSL
 
 [wsl/install-docker.sh](wsl/install-docker.sh) is a standalone Ubuntu WSL 2 development installer based on the `bh-radius-wsl-setup` skill. Neither the Windows installer nor [wsl/setup.sh](wsl/setup.sh) invokes it. With systemd enabled, run it as your regular WSL user from a clone on the distro's Linux filesystem:
