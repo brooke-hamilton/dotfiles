@@ -190,12 +190,6 @@ elevated.
 
 [wsl/setup.tests.sh](wsl/setup.tests.sh) verifies Linux Node tooling selection and Windows PATH isolation with mocked installers, without installing software. Run it inside WSL with `bash ~/dotfiles/wsl/setup.tests.sh`.
 
-[wsl/go.tests.sh](wsl/go.tests.sh) tests stable-release selection, metadata and
-checksum failures, base-SDK upgrades, rollback, idempotency, user-local and
-Windows PATH conflicts, and Go-only/read-only modes. It uses temporary SDKs
-and mocked downloads and elevation, without changing the installed Go SDK
-or host configuration. Run it inside WSL with `bash ~/dotfiles/wsl/go.tests.sh`.
-
 [install.tests.ps1](install.tests.ps1) covers `Invoke-Step`'s selection logic (`-Only`, `-Skip`, `-AdminOnly`, `-UserOnly`, `-Plan`, and admin gating) and mocked `wslc` installation, update, reboot, and verification outcomes without installing software. Run with Pester:
 
 ```powershell
